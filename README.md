@@ -23,22 +23,55 @@ $$
 
 ## 数値解法
 
-### 時間積分（Projection法）
+### Projection法（時間積分）
 
-1. **予測ステップ**: 圧力項を除いた運動量方程式を解く
-   $$
-   \frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n
-   $$
+Projection法（Chorin, 1968）は、非圧縮性Navier-Stokes方程式の時間積分において最も広く使われる手法の一つである。この手法の核心は、**速度場と圧力場を分離して解く**ことで、計算効率を大幅に向上させる点にある。
 
-2. **圧力Poisson方程式**: 連続の式を満たす圧力場を求める
-   $$
-   \nabla^2 p^{n+1} = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^*
-   $$
+#### なぜProjection法を使うのか？
 
-3. **修正ステップ**: 速度場を更新
-   $$
-   \mathbf{u}^{n+1} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p^{n+1}
-   $$
+非圧縮性流れでは、速度と圧力が連続の式 $\nabla \cdot \mathbf{u} = 0$ を通じて強く結合している。これを直接解くことは計算コストが高い。Projection法は**Helmholtz-Hodge分解**の原理に基づき、任意のベクトル場を発散なし成分と勾配成分に分解できることを利用する：
+
+$$
+\mathbf{w} = \mathbf{u} + \nabla \phi
+$$
+
+ここで $\nabla \cdot \mathbf{u} = 0$ である。この性質を使い、まず圧力を無視した「仮の速度場」を計算し、その後圧力によって連続の式を満たすように補正する。
+
+#### アルゴリズム
+
+**Step 1. 予測ステップ（Predictor）**
+
+圧力項を除いた運動量方程式を解き、中間速度場 $\mathbf{u}^*$ を求める：
+
+$$
+\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n
+$$
+
+この段階では連続の式 $\nabla \cdot \mathbf{u}^* = 0$ は一般に満たされない。
+
+**Step 2. 圧力Poisson方程式**
+
+次の時刻で連続の式を満たす圧力場を求める。修正ステップの式の発散をとり $\nabla \cdot \mathbf{u}^{n+1} = 0$ を課すと：
+
+$$
+\nabla^2 p^{n+1} = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^*
+$$
+
+この楕円型偏微分方程式をSOR法（逐次過緩和法）で反復的に解く。
+
+**Step 3. 修正ステップ（Corrector）**
+
+求めた圧力勾配で中間速度場を補正し、発散なしの速度場を得る：
+
+$$
+\mathbf{u}^{n+1} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p^{n+1}
+$$
+
+#### Projection法の利点
+
+- **分離解法**: 速度と圧力を別々に解くため、連立方程式を直接解くより効率的
+- **物理的直感**: 「圧力は連続の式を満たすように速度場を補正する」という役割が明確
+- **実装の容易さ**: 各ステップが標準的な数値手法で解ける
 
 ### 空間離散化
 
@@ -129,6 +162,24 @@ python ../scripts/validation.py output_cavity
 python ../scripts/convergence.py output_channel
 ```
 
+## 計算結果
+
+### キャビティ流れ（Lid-driven cavity, Re = 100）
+
+上壁が一定速度で移動する正方形キャビティ内の流れのシミュレーション結果：
+
+![Cavity Flow Result](docs/images/cavity_flow_result.png)
+
+**左上**: 速度場（ベクトル）とカラーマップ | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+
+### ベンチマーク検証
+
+Ghia, Ghia & Shin (1982) のベンチマークデータとの比較により、数値解の妥当性を検証：
+
+![Validation Re=100](docs/images/cavity_validation_Re100.png)
+
+垂直・水平中心線上の速度分布が参照データと良好に一致していることが確認できる。
+
 ## 検証
 
 ### キャビティ流れ
@@ -140,8 +191,14 @@ Ghia, Ghia & Shin (1982) のベンチマークデータとの比較により検�
 ### チャネル流れ
 
 Poiseuille流れの理論解との比較：
-- 最大速度: $U_{\max} = \frac{3}{2} U_{\text{mean}}$
-- 速度分布: $u(y) = U_{\max} \left(1 - \frac{4y^2}{H^2}\right)$
+
+$$
+U_{\max} = \frac{3}{2} U_{\text{mean}}
+$$
+
+$$
+u(y) = U_{\max} \left(1 - \frac{4y^2}{H^2}\right)
+$$
 
 ## 参考文献
 
