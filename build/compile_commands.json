@@ -1,0 +1,44 @@
+[
+{
+  "directory": "/Users/koki/Desktop/fluid/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/koki/Desktop/fluid/include -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk -mmacosx-version-min=15.6 -Wall -Wextra -O3 -o CMakeFiles/fluid_solver.dir/src/Grid.cpp.o -c /Users/koki/Desktop/fluid/src/Grid.cpp",
+  "file": "/Users/koki/Desktop/fluid/src/Grid.cpp",
+  "output": "CMakeFiles/fluid_solver.dir/src/Grid.cpp.o"
+},
+{
+  "directory": "/Users/koki/Desktop/fluid/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/koki/Desktop/fluid/include -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk -mmacosx-version-min=15.6 -Wall -Wextra -O3 -o CMakeFiles/fluid_solver.dir/src/Solver.cpp.o -c /Users/koki/Desktop/fluid/src/Solver.cpp",
+  "file": "/Users/koki/Desktop/fluid/src/Solver.cpp",
+  "output": "CMakeFiles/fluid_solver.dir/src/Solver.cpp.o"
+},
+{
+  "directory": "/Users/koki/Desktop/fluid/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/koki/Desktop/fluid/include -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk -mmacosx-version-min=15.6 -Wall -Wextra -O3 -o CMakeFiles/fluid_solver.dir/src/PressureSolver.cpp.o -c /Users/koki/Desktop/fluid/src/PressureSolver.cpp",
+  "file": "/Users/koki/Desktop/fluid/src/PressureSolver.cpp",
+  "output": "CMakeFiles/fluid_solver.dir/src/PressureSolver.cpp.o"
+},
+{
+  "directory": "/Users/koki/Desktop/fluid/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/koki/Desktop/fluid/include -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk -mmacosx-version-min=15.6 -Wall -Wextra -O3 -o CMakeFiles/fluid_solver.dir/src/BoundaryCondition.cpp.o -c /Users/koki/Desktop/fluid/src/BoundaryCondition.cpp",
+  "file": "/Users/koki/Desktop/fluid/src/BoundaryCondition.cpp",
+  "output": "CMakeFiles/fluid_solver.dir/src/BoundaryCondition.cpp.o"
+},
+{
+  "directory": "/Users/koki/Desktop/fluid/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/koki/Desktop/fluid/include -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk -mmacosx-version-min=15.6 -Wall -Wextra -O3 -o CMakeFiles/fluid_solver.dir/src/CSVWriter.cpp.o -c /Users/koki/Desktop/fluid/src/CSVWriter.cpp",
+  "file": "/Users/koki/Desktop/fluid/src/CSVWriter.cpp",
+  "output": "CMakeFiles/fluid_solver.dir/src/CSVWriter.cpp.o"
+},
+{
+  "directory": "/Users/koki/Desktop/fluid/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/koki/Desktop/fluid/include -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk -mmacosx-version-min=15.6 -Wall -Wextra -O3 -o CMakeFiles/cavity_flow.dir/examples/cavity_flow.cpp.o -c /Users/koki/Desktop/fluid/examples/cavity_flow.cpp",
+  "file": "/Users/koki/Desktop/fluid/examples/cavity_flow.cpp",
+  "output": "CMakeFiles/cavity_flow.dir/examples/cavity_flow.cpp.o"
+},
+{
+  "directory": "/Users/koki/Desktop/fluid/build",
+  "command": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++  -I/Users/koki/Desktop/fluid/include -std=gnu++17 -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.1.sdk -mmacosx-version-min=15.6 -Wall -Wextra -O3 -o CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o -c /Users/koki/Desktop/fluid/examples/channel_flow.cpp",
+  "file": "/Users/koki/Desktop/fluid/examples/channel_flow.cpp",
+  "output": "CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o"
+}
+]

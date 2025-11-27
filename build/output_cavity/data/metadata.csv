@@ -1,0 +1,7 @@
+parameter,value
+nx,64
+ny,64
+lx,0.01
+ly,0.01
+dx,0.00015625
+dy,0.00015625

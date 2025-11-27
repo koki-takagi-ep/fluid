@@ -1,0 +1,350 @@
+#!/usr/bin/env python3
+"""
+Lid-Driven Cavity Flow の検証スクリプト
+
+Ghia, Ghia & Shin (1982) のベンチマークデータとの比較
+"High-Re solutions for incompressible flow using the Navier-Stokes equations
+ and a multigrid method", J. Comput. Phys., 48, 387-411
+
+参照データ: 垂直・水平中心線での速度プロファイル
+"""
+
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator, MultipleLocator
+
+
+# Ghia et al. (1982) のベンチマークデータ
+# 垂直中心線 (x=0.5) での u 速度
+GHIA_DATA_U = {
+    # Re = 100
+    100: {
+        'y': [0.0000, 0.0547, 0.0625, 0.0703, 0.1016, 0.1719, 0.2813,
+              0.4531, 0.5000, 0.6172, 0.7344, 0.8516, 0.9531, 0.9609,
+              0.9688, 0.9766, 1.0000],
+        'u': [0.0000, -0.03717, -0.04192, -0.04775, -0.06434, -0.10150, -0.15662,
+              -0.21090, -0.20581, -0.13641, 0.00332, 0.23151, 0.68717, 0.73722,
+              0.78871, 0.84123, 1.0000]
+    },
+    # Re = 400
+    400: {
+        'y': [0.0000, 0.0547, 0.0625, 0.0703, 0.1016, 0.1719, 0.2813,
+              0.4531, 0.5000, 0.6172, 0.7344, 0.8516, 0.9531, 0.9609,
+              0.9688, 0.9766, 1.0000],
+        'u': [0.0000, -0.08186, -0.09266, -0.10338, -0.14612, -0.24299, -0.32726,
+              -0.17119, -0.11477, 0.02135, 0.16256, 0.29093, 0.55892, 0.61756,
+              0.68439, 0.75837, 1.0000]
+    },
+    # Re = 1000
+    1000: {
+        'y': [0.0000, 0.0547, 0.0625, 0.0703, 0.1016, 0.1719, 0.2813,
+              0.4531, 0.5000, 0.6172, 0.7344, 0.8516, 0.9531, 0.9609,
+              0.9688, 0.9766, 1.0000],
+        'u': [0.0000, -0.18109, -0.20196, -0.22220, -0.29730, -0.38289, -0.27805,
+              -0.10648, -0.06080, 0.05702, 0.18719, 0.33304, 0.46604, 0.51117,
+              0.57492, 0.65928, 1.0000]
+    }
+}
+
+# 水平中心線 (y=0.5) での v 速度
+GHIA_DATA_V = {
+    # Re = 100
+    100: {
+        'x': [0.0000, 0.0625, 0.0703, 0.0781, 0.0938, 0.1563, 0.2266,
+              0.2344, 0.5000, 0.8047, 0.8594, 0.9063, 0.9453, 0.9531,
+              0.9609, 0.9688, 1.0000],
+        'v': [0.0000, 0.09233, 0.10091, 0.10890, 0.12317, 0.16077, 0.17507,
+              0.17527, 0.05454, -0.24533, -0.22445, -0.16914, -0.10313, -0.08864,
+              -0.07391, -0.05906, 0.0000]
+    },
+    # Re = 400
+    400: {
+        'x': [0.0000, 0.0625, 0.0703, 0.0781, 0.0938, 0.1563, 0.2266,
+              0.2344, 0.5000, 0.8047, 0.8594, 0.9063, 0.9453, 0.9531,
+              0.9609, 0.9688, 1.0000],
+        'v': [0.0000, 0.18360, 0.19713, 0.20920, 0.22965, 0.28124, 0.30203,
+              0.30174, 0.05186, -0.38598, -0.44993, -0.23827, -0.22847, -0.19254,
+              -0.15663, -0.12146, 0.0000]
+    },
+    # Re = 1000
+    1000: {
+        'x': [0.0000, 0.0625, 0.0703, 0.0781, 0.0938, 0.1563, 0.2266,
+              0.2344, 0.5000, 0.8047, 0.8594, 0.9063, 0.9453, 0.9531,
+              0.9609, 0.9688, 1.0000],
+        'v': [0.0000, 0.27485, 0.29012, 0.30353, 0.32627, 0.37095, 0.33075,
+              0.32235, 0.02526, -0.31966, -0.42665, -0.51550, -0.39188, -0.33714,
+              -0.27669, -0.21388, 0.0000]
+    }
+}
+
+
+def get_data_dir(output_dir: str) -> str:
+    """dataディレクトリのパスを取得（新旧両方の構造に対応）"""
+    data_dir = os.path.join(output_dir, "data")
+    if os.path.exists(data_dir):
+        return data_dir
+    return output_dir  # 旧構造の場合
+
+
+def get_figures_dir(output_dir: str) -> str:
+    """figuresディレクトリのパスを取得（なければ作成）"""
+    figures_dir = os.path.join(output_dir, "figures")
+    if not os.path.exists(figures_dir):
+        os.makedirs(figures_dir, exist_ok=True)
+    return figures_dir
+
+
+def load_simulation_data(output_dir: str):
+    """シミュレーション結果を読み込む"""
+    data_dir = get_data_dir(output_dir)
+
+    # メタデータ
+    metadata_file = os.path.join(data_dir, "metadata.csv")
+    df_meta = pd.read_csv(metadata_file)
+    meta = dict(zip(df_meta['parameter'], df_meta['value']))
+    nx, ny = int(meta['nx']), int(meta['ny'])
+    lx, ly = float(meta['lx']), float(meta['ly'])
+
+    # 最終時刻のフィールドデータを取得
+    import glob
+    files = sorted(glob.glob(os.path.join(data_dir, "field_*.csv")))
+    if not files:
+        raise FileNotFoundError("No field files found")
+
+    last_file = files[-1]
+    df = pd.read_csv(last_file, comment='#')
+
+    x = df['x'].values.reshape(nx, ny)
+    y = df['y'].values.reshape(nx, ny)
+    u = df['u'].values.reshape(nx, ny)
+    v = df['v'].values.reshape(nx, ny)
+
+    return {
+        'nx': nx, 'ny': ny, 'lx': lx, 'ly': ly,
+        'x': x, 'y': y, 'u': u, 'v': v
+    }
+
+
+def extract_centerline_profiles(data: dict, U_lid: float = 1.0):
+    """中心線での速度プロファイルを抽出（無次元化）"""
+    nx, ny = data['nx'], data['ny']
+    lx, ly = data['lx'], data['ly']
+
+    # 垂直中心線 (x = 0.5*lx) での u 速度
+    i_mid = nx // 2
+    y_vertical = data['y'][i_mid, :] / ly  # 無次元化
+    u_vertical = data['u'][i_mid, :] / U_lid  # 無次元化
+
+    # 水平中心線 (y = 0.5*ly) での v 速度
+    j_mid = ny // 2
+    x_horizontal = data['x'][:, j_mid] / lx  # 無次元化
+    v_horizontal = data['v'][:, j_mid] / U_lid  # 無次元化
+
+    return {
+        'y_vertical': y_vertical,
+        'u_vertical': u_vertical,
+        'x_horizontal': x_horizontal,
+        'v_horizontal': v_horizontal
+    }
+
+
+def setup_axis_style(ax, xlabel='', ylabel='', title=''):
+    """軸のスタイルを設定（論文調）"""
+    ax.set_xlabel(xlabel, fontsize=11, fontweight='bold')
+    ax.set_ylabel(ylabel, fontsize=11, fontweight='bold')
+    if title:
+        ax.set_title(title, fontsize=12, fontweight='bold')
+
+    ax.xaxis.set_ticks_position('both')
+    ax.yaxis.set_ticks_position('both')
+    ax.tick_params(which='major', direction='out', length=6, width=1, labelsize=10)
+    ax.tick_params(which='minor', direction='out', length=3, width=0.5)
+    ax.xaxis.set_minor_locator(AutoMinorLocator(5))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+
+
+def plot_validation(output_dir: str, Re: int, U_lid: float, save_file: str = None):
+    """検証プロットを作成"""
+
+    # デフォルトの出力先はfiguresディレクトリ
+    if save_file is None:
+        save_file = os.path.join(get_figures_dir(output_dir), f'validation_Re{Re}.pdf')
+
+    if Re not in GHIA_DATA_U:
+        print(f"Warning: No Ghia data available for Re={Re}")
+        available = list(GHIA_DATA_U.keys())
+        print(f"Available Re: {available}")
+        return
+
+    # シミュレーションデータを読み込み
+    data = load_simulation_data(output_dir)
+    profiles = extract_centerline_profiles(data, U_lid)
+
+    # Ghiaのデータ
+    ghia_u = GHIA_DATA_U[Re]
+    ghia_v = GHIA_DATA_V[Re]
+
+    # プロット作成
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
+
+    # 左: 垂直中心線での u 速度
+    ax = axes[0]
+    ax.plot(profiles['u_vertical'], profiles['y_vertical'],
+            'b-', linewidth=1.5, label='Present (CFD)')
+    ax.plot(ghia_u['u'], ghia_u['y'],
+            'ro', markersize=6, markerfacecolor='none', markeredgewidth=1.5,
+            label='Ghia et al. (1982)')
+
+    setup_axis_style(ax, xlabel=r'$u / U_{\rm lid}$', ylabel=r'$y / L$',
+                     title=f'Vertical centerline ($x/L = 0.5$)')
+    ax.set_xlim(-0.5, 1.1)
+    ax.set_ylim(0, 1)
+    ax.legend(loc='lower right', fontsize=9, frameon=True, edgecolor='black', fancybox=False)
+    ax.grid(True, alpha=0.3, linestyle='--')
+
+    # 右: 水平中心線での v 速度
+    ax = axes[1]
+    ax.plot(profiles['x_horizontal'], profiles['v_horizontal'],
+            'b-', linewidth=1.5, label='Present (CFD)')
+    ax.plot(ghia_v['x'], ghia_v['v'],
+            'ro', markersize=6, markerfacecolor='none', markeredgewidth=1.5,
+            label='Ghia et al. (1982)')
+
+    setup_axis_style(ax, xlabel=r'$x / L$', ylabel=r'$v / U_{\rm lid}$',
+                     title=f'Horizontal centerline ($y/L = 0.5$)')
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.5, 0.4)
+    ax.legend(loc='upper right', fontsize=9, frameon=True, edgecolor='black', fancybox=False)
+    ax.grid(True, alpha=0.3, linestyle='--')
+
+    # 全体タイトル
+    fig.suptitle(f'Lid-Driven Cavity Flow Validation (Re = {Re})',
+                 fontsize=13, fontweight='bold', y=1.02)
+
+    plt.tight_layout()
+
+    plt.savefig(save_file, bbox_inches='tight')
+    print(f"Validation plot saved to {save_file}")
+
+    # 誤差を計算
+    compute_error(profiles, ghia_u, ghia_v, Re)
+
+
+def compute_error(profiles: dict, ghia_u: dict, ghia_v: dict, Re: int):
+    """Ghiaデータとの誤差を計算"""
+
+    # 補間して比較
+    from scipy import interpolate
+
+    # u速度の誤差
+    f_u = interpolate.interp1d(profiles['y_vertical'], profiles['u_vertical'],
+                                kind='linear', fill_value='extrapolate')
+    u_interp = f_u(ghia_u['y'])
+    u_error = np.sqrt(np.mean((u_interp - np.array(ghia_u['u']))**2))
+    u_max_error = np.max(np.abs(u_interp - np.array(ghia_u['u'])))
+
+    # v速度の誤差
+    f_v = interpolate.interp1d(profiles['x_horizontal'], profiles['v_horizontal'],
+                                kind='linear', fill_value='extrapolate')
+    v_interp = f_v(ghia_v['x'])
+    v_error = np.sqrt(np.mean((v_interp - np.array(ghia_v['v']))**2))
+    v_max_error = np.max(np.abs(v_interp - np.array(ghia_v['v'])))
+
+    print(f"\n=== Validation Results (Re = {Re}) ===")
+    print(f"u-velocity (vertical centerline):")
+    print(f"  RMS error:  {u_error:.6f}")
+    print(f"  Max error:  {u_max_error:.6f}")
+    print(f"v-velocity (horizontal centerline):")
+    print(f"  RMS error:  {v_error:.6f}")
+    print(f"  Max error:  {v_max_error:.6f}")
+    print("=" * 40)
+
+
+def plot_multi_re_validation(results: dict, save_file: str = None):
+    """複数Reでの検証プロットを作成"""
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 9))
+
+    colors = {100: 'blue', 400: 'green', 1000: 'red'}
+    markers = {100: 'o', 400: 's', 1000: '^'}
+
+    # 左上: 垂直中心線 u速度
+    ax = axes[0, 0]
+    for Re, data in results.items():
+        if Re in GHIA_DATA_U:
+            ax.plot(data['profiles']['u_vertical'], data['profiles']['y_vertical'],
+                    '-', color=colors[Re], linewidth=1.5, label=f'CFD Re={Re}')
+            ax.plot(GHIA_DATA_U[Re]['u'], GHIA_DATA_U[Re]['y'],
+                    markers[Re], color=colors[Re], markersize=5,
+                    markerfacecolor='none', markeredgewidth=1.2)
+
+    setup_axis_style(ax, xlabel=r'$u / U_{\rm lid}$', ylabel=r'$y / L$',
+                     title='Vertical centerline')
+    ax.set_xlim(-0.5, 1.1)
+    ax.set_ylim(0, 1)
+    ax.legend(loc='lower right', fontsize=8)
+    ax.grid(True, alpha=0.3, linestyle='--')
+
+    # 右上: 水平中心線 v速度
+    ax = axes[0, 1]
+    for Re, data in results.items():
+        if Re in GHIA_DATA_V:
+            ax.plot(data['profiles']['x_horizontal'], data['profiles']['v_horizontal'],
+                    '-', color=colors[Re], linewidth=1.5, label=f'CFD Re={Re}')
+            ax.plot(GHIA_DATA_V[Re]['x'], GHIA_DATA_V[Re]['v'],
+                    markers[Re], color=colors[Re], markersize=5,
+                    markerfacecolor='none', markeredgewidth=1.2)
+
+    setup_axis_style(ax, xlabel=r'$x / L$', ylabel=r'$v / U_{\rm lid}$',
+                     title='Horizontal centerline')
+    ax.set_xlim(0, 1)
+    ax.legend(loc='upper right', fontsize=8)
+    ax.grid(True, alpha=0.3, linestyle='--')
+
+    # 凡例用のダミープロット
+    ax = axes[1, 0]
+    ax.plot([], [], 'k-', linewidth=1.5, label='Present (CFD)')
+    ax.plot([], [], 'ko', markersize=6, markerfacecolor='none',
+            markeredgewidth=1.5, label='Ghia et al. (1982)')
+    ax.legend(loc='center', fontsize=11, frameon=True)
+    ax.axis('off')
+    ax.set_title('Legend', fontsize=12, fontweight='bold')
+
+    # 右下: 誤差のまとめ
+    ax = axes[1, 1]
+    ax.axis('off')
+
+    error_text = "Validation Summary\n" + "=" * 30 + "\n\n"
+    for Re, data in results.items():
+        error_text += f"Re = {Re}:\n"
+        error_text += f"  u RMS error: {data['u_rms']:.4f}\n"
+        error_text += f"  v RMS error: {data['v_rms']:.4f}\n\n"
+
+    ax.text(0.1, 0.9, error_text, transform=ax.transAxes, fontsize=10,
+            verticalalignment='top', fontfamily='monospace',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    ax.set_title('Error Analysis', fontsize=12, fontweight='bold')
+
+    plt.tight_layout()
+
+    if save_file:
+        plt.savefig(save_file, bbox_inches='tight')
+        print(f"Multi-Re validation plot saved to {save_file}")
+    else:
+        plt.show()
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Validate cavity flow simulation')
+    parser.add_argument('output_dir', help='Output directory containing CSV files')
+    parser.add_argument('--Re', type=int, default=100, help='Reynolds number')
+    parser.add_argument('--U_lid', type=float, default=0.01, help='Lid velocity [m/s]')
+    parser.add_argument('--save', type=str, default=None, help='Save figure to file')
+
+    args = parser.parse_args()
+
+    plot_validation(args.output_dir, args.Re, args.U_lid, args.save)
