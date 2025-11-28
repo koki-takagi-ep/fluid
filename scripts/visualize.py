@@ -203,7 +203,7 @@ def plot_velocity_field(field: dict, ax=None, title=None, show_streamlines=True,
 
     # カラーバー（横向き対応）
     if horizontal_cbar:
-        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.15, aspect=30)
+        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.25, aspect=50, shrink=0.8)
     else:
         cbar = plt.colorbar(cf, ax=ax)
     setup_colorbar_style(cbar, label=f'Velocity $|\\vec{{u}}|$ ({vel_unit})')
@@ -246,7 +246,7 @@ def plot_pressure_field(field: dict, ax=None, title=None, length_unit='mm', hori
 
     # カラーバー（横向き対応）
     if horizontal_cbar:
-        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.15, aspect=30)
+        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.25, aspect=50, shrink=0.8)
     else:
         cbar = plt.colorbar(cf, ax=ax)
     setup_colorbar_style(cbar, label='Pressure $p$ (Pa)')
@@ -298,7 +298,7 @@ def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_uni
 
     # カラーバー（横向き対応）
     if horizontal_cbar:
-        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.15, aspect=30)
+        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.25, aspect=50, shrink=0.8)
     else:
         cbar = plt.colorbar(cf, ax=ax)
     setup_colorbar_style(cbar, label=f'Velocity $|\\vec{{u}}|$ ({vel_unit})')
