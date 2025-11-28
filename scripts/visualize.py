@@ -511,8 +511,8 @@ def create_animation(output_dir: str, output_file: str = None, fps: int = 10,
     plt.close()
 
 
-def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 300):
-    """最終状態を4パネルで表示"""
+def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 600):
+    """最終状態を縦一列で表示（4パネル）"""
     metadata = load_metadata(output_dir)
     nx, ny = int(metadata['nx']), int(metadata['ny'])
 
@@ -530,46 +530,67 @@ def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 300):
     # チャネルフローかどうかを判定（アスペクト比で判断）
     x_range = field['x'].max() - field['x'].min()
     y_range = field['y'].max() - field['y'].min()
-    is_channel_flow = (x_range / y_range) > 3  # アスペクト比が3以上ならチャネルフロー
+    aspect_ratio = x_range / y_range
+    is_channel_flow = aspect_ratio > 3  # アスペクト比が3以上ならチャネルフロー
 
     # mm単位での最大値
     L_scale = 1000.0  # mm
     x_max_mm = field['x'].max() * L_scale
     y_max_mm = field['y'].max() * L_scale
 
-    # チャネルフローの場合は横長レイアウト
+    # 縦一列レイアウト（4行1列）
+    # カラーマップ図の高さはアスペクト比に応じて調整
+    # centerline velocityは正方形
     if is_channel_flow:
-        fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+        # チャネルフロー: 横長の図
+        panel_width = 10
+        panel_height = panel_width / aspect_ratio + 1.5  # カラーバー分の余白
+        square_size = 5  # 正方形プロットのサイズ
+        fig_height = panel_height * 3 + square_size + 2  # 余白
+        fig = plt.figure(figsize=(panel_width, fig_height))
+
+        # GridSpecで柔軟なレイアウト
+        from matplotlib.gridspec import GridSpec
+        gs = GridSpec(4, 1, figure=fig, height_ratios=[panel_height, panel_height, panel_height, square_size],
+                      hspace=0.4)
     else:
-        fig, axes = plt.subplots(2, 2, figsize=(10, 9))
+        # キャビティフロー: 正方形に近い図
+        panel_size = 6
+        fig_height = panel_size * 4 + 3  # 余白
+        fig = plt.figure(figsize=(panel_size, fig_height))
+
+        from matplotlib.gridspec import GridSpec
+        gs = GridSpec(4, 1, figure=fig, height_ratios=[1, 1, 1, 1], hspace=0.35)
 
     # 速度場（ベクトル＋カラー）
-    ax = axes[0, 0]
-    plot_velocity_field(field, ax=ax, show_streamlines=False,
+    ax1 = fig.add_subplot(gs[0])
+    plot_velocity_field(field, ax=ax1, show_streamlines=False,
                         title=r'Velocity Field $|\vec{u}|$',
-                        horizontal_cbar=is_channel_flow)
+                        horizontal_cbar=True)
     if is_channel_flow:
-        setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
+        setup_channel_flow_axes(ax1, x_max_mm, y_max_mm)
 
     # 流線
-    ax = axes[0, 1]
-    plot_streamlines(field, ax=ax, title=r'Streamlines $|\vec{u}|$',
-                     horizontal_cbar=is_channel_flow)
+    ax2 = fig.add_subplot(gs[1])
+    plot_streamlines(field, ax=ax2, title=r'Streamlines $|\vec{u}|$',
+                     horizontal_cbar=True)
     if is_channel_flow:
-        setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
+        setup_channel_flow_axes(ax2, x_max_mm, y_max_mm)
 
     # 圧力場
-    ax = axes[1, 0]
-    plot_pressure_field(field, ax=ax, title=r'Pressure Field $p$',
-                        horizontal_cbar=is_channel_flow)
+    ax3 = fig.add_subplot(gs[2])
+    plot_pressure_field(field, ax=ax3, title=r'Pressure Field $p$',
+                        horizontal_cbar=True)
     if is_channel_flow:
-        setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
+        setup_channel_flow_axes(ax3, x_max_mm, y_max_mm)
 
-    # 中心線速度プロファイル
-    ax = axes[1, 1]
-    plot_centerline_velocity(field, ax=ax)
+    # 中心線速度プロファイル（正方形）
+    ax4 = fig.add_subplot(gs[3])
+    plot_centerline_velocity(field, ax=ax4)
+    ax4.set_box_aspect(1)  # 正方形のaxes box
 
-    plt.tight_layout()
+    # レイアウト調整（GridSpecを使用しているためsubplots_adjustを使用）
+    fig.subplots_adjust(left=0.12, right=0.95, top=0.97, bottom=0.05)
 
     # SVG, PDF, PNG の3形式で保存
     base_path = os.path.splitext(save_file)[0]
@@ -598,7 +619,7 @@ def main():
     parser.add_argument('--streamlines', action='store_true', help='Plot streamlines only')
     parser.add_argument('--save', type=str, default=None, help='Save figure to file')
     parser.add_argument('--fps', type=int, default=10, help='Animation FPS')
-    parser.add_argument('--dpi', type=int, default=300, help='Output DPI for PNG images (default: 300)')
+    parser.add_argument('--dpi', type=int, default=600, help='Output DPI for PNG images (default: 600)')
 
     args = parser.parse_args()
 

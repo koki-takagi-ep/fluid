@@ -47,13 +47,22 @@ python3 ../scripts/validation.py output/cavity_projection --Re 100       # Ghia 
 - **Projection method** (Chorin, 1968) - `Solver` class
 - **SIMPLE method** (Patankar & Spalding, 1972) - `SimpleSolver` class
 
+### Class Hierarchy
+
+```
+SolverBase (abstract)
+├── Solver        (Projection method)
+└── SimpleSolver  (SIMPLE method)
+```
+
 ### Core Classes (in `fluid` namespace)
 
 | Class | File | Description |
 |-------|------|-------------|
 | `Grid` | Grid.hpp/cpp | Staggered grid: p at cell centers, u/v at faces. Ghost cells for BCs. |
-| `Solver` | Solver.hpp/cpp | Projection method time integration |
-| `SimpleSolver` | SimpleSolver.hpp/cpp | SIMPLE method time integration |
+| `SolverBase` | SolverBase.hpp/cpp | Abstract base: time step, convection/diffusion, velocity correction |
+| `Solver` | Solver.hpp/cpp | Projection method (inherits SolverBase) |
+| `SimpleSolver` | SimpleSolver.hpp/cpp | SIMPLE method (inherits SolverBase) |
 | `PressureSolver` | PressureSolver.hpp/cpp | SOR solver for pressure Poisson equation |
 | `BoundaryCondition` | BoundaryCondition.hpp/cpp | NoSlip, Inflow, Outflow. Factory: `cavityFlow()`, `channelFlow()` |
 | `CSVWriter` | CSVWriter.hpp/cpp | CSV output to `output_*/data/` |
@@ -105,7 +114,9 @@ output/
     │   ├── field_000001.csv
     │   └── metadata.csv        # Grid parameters
     ├── figures/
-    │   └── result.svg          # Visualization output (SVG format)
+    │   ├── result.svg          # Visualization output (SVG format)
+    │   ├── result.pdf          # PDF format
+    │   └── result.png          # PNG format (300 dpi)
     └── simulation.log          # Computation time and settings log
 ```
 
@@ -117,6 +128,6 @@ numpy, matplotlib, pandas, scipy
 
 | Script | Purpose |
 |--------|---------|
-| `visualize.py` | Plot velocity/pressure fields, streamlines (SVG output) |
+| `visualize.py` | Plot velocity/pressure fields, streamlines (SVG/PDF/PNG output) |
 | `validation.py` | Compare with Ghia et al. (1982) benchmark data |
 | `convergence.py` | Analyze solver convergence history |
