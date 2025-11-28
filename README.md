@@ -23,7 +23,8 @@ fluid/
 │   └── channel_flow_simple.cpp # チャネル流れ（SIMPLE法）
 ├── scripts/                  # 可視化・解析スクリプト
 │   ├── visualize.py          # 結果の可視化
-│   ├── validation.py         # ベンチマーク検証
+│   ├── validation.py         # キャビティ流れ検証（Ghia et al.）
+│   ├── validation_channel.py # チャネル流れ検証（Hagen-Poiseuille）
 │   └── convergence.py        # 収束解析
 └── docs/                     # ドキュメント
 ```
@@ -192,21 +193,52 @@ $$
 
 ![Cavity Flow Result](docs/images/cavity_projection_result.svg)
 
-### チャネル流れ（Re = 30）
+### チャネル流れ（Hagen-Poiseuille, Re = 30）
+
+放物線流入プロファイル（完全発達流）による平行平板間流れ。
 
 **Projection法**
 
 ![Channel Flow - Projection](docs/images/channel_projection_result.svg)
 
-**SIMPLE法**
-
-![Channel Flow - SIMPLE](docs/images/channel_simple_result.svg)
-
 ### ベンチマーク検証
+
+#### キャビティ流れ：Ghia et al. (1982)
 
 Ghia, Ghia & Shin (1982) のベンチマークデータとの比較：
 
-![Validation](docs/images/cavity_validation_Re100.svg)
+![Cavity Validation](docs/images/cavity_validation_Re100.svg)
+
+#### チャネル流れ：Hagen-Poiseuille理論解
+
+放物線速度分布の理論解との比較：
+
+$$
+u(y) = U_{\max} \left(1 - \left(\frac{2y}{H} - 1\right)^2\right)
+$$
+
+![Channel Validation](docs/images/channel_poiseuille_validation.svg)
+
+#### 格子収束性解析
+
+$L_2$誤差ノルムによる格子収束性を検証：
+
+$$
+\|e\|_{L_2} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (u_{num,i} - u_{exact,i})^2}
+$$
+
+格子幅 $h$ に対する誤差の収束：$\|e\|_{L_2} = O(h^p)$
+
+![Grid Convergence](docs/images/channel_convergence.svg)
+
+| $n_y$ | 格子幅 $h$ [m] | $L_2$誤差 [m/s] | 誤差比 |
+|------:|---------------:|----------------:|-------:|
+| 8 | 3.75e-4 | 9.76e-5 | - |
+| 16 | 1.88e-4 | 2.57e-5 | 3.79 |
+| 32 | 9.38e-5 | 6.52e-6 | 3.95 |
+| 64 | 4.69e-5 | 1.63e-6 | 3.99 |
+
+▶︎ 両対数グラフの傾きから**収束次数 $p \approx 2$** を確認。格子幅を半分にすると誤差が約1/4に減少（2次精度の特徴）。
 
 詳細は [計算結果](docs/RESULTS.md) を参照。
 

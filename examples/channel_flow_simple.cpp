@@ -1,8 +1,8 @@
 /**
- * チャネル流れ（SIMPLE法）
+ * チャネル流れ（SIMPLE法 / Hagen-Poiseuille Flow）
  *
  * SIMPLE法を使用したチャネル流れのシミュレーション
- * Projection法との比較用
+ * 放物線流入プロファイルでHagen-Poiseuille理論解と比較
  */
 
 #include "Grid.hpp"
@@ -20,10 +20,11 @@ int main(int argc, char* argv[]) {
     double rho = 1000.0;       // 密度 [kg/m³] (水)
     double mu = 1.0e-3;        // 粘性係数 [Pa·s] (水)
     double nu = mu / rho;      // 動粘性係数 [m²/s]
-    double U_in = 0.01;        // 流入速度 [m/s] (10 mm/s)
+    double U_max = 0.015;      // 最大流速（中心速度） [m/s] (15 mm/s)
+    double U_mean = (2.0/3.0) * U_max;  // 平均流速 [m/s]
 
     // レイノルズ数
-    double Re = U_in * L / nu;
+    double Re = U_mean * L / nu;
 
     // 計算パラメータ
     int nx = 128;
@@ -33,23 +34,26 @@ int main(int argc, char* argv[]) {
     // コマンドライン引数の処理
     if (argc > 1) nx = std::atoi(argv[1]);
     if (argc > 2) ny = std::atoi(argv[2]);
-    if (argc > 3) U_in = std::atof(argv[3]);
+    if (argc > 3) U_max = std::atof(argv[3]);
     if (argc > 4) endTime = std::atof(argv[4]);
 
-    Re = U_in * L / nu;
+    U_mean = (2.0/3.0) * U_max;
+    Re = U_mean * L / nu;
 
-    std::cout << "=== Channel Flow (SIMPLE Method) ===" << std::endl;
+    std::cout << "=== Channel Flow - SIMPLE (Hagen-Poiseuille) ===" << std::endl;
     std::cout << "Physical parameters:" << std::endl;
     std::cout << "  Channel height: " << L * 1000 << " mm" << std::endl;
     std::cout << "  Channel length: " << Lx * 1000 << " mm" << std::endl;
     std::cout << "  Density: " << rho << " kg/m^3" << std::endl;
     std::cout << "  Viscosity: " << mu << " Pa.s" << std::endl;
-    std::cout << "  Inflow velocity: " << U_in * 1000 << " mm/s" << std::endl;
+    std::cout << "  Max velocity (center): " << U_max * 1000 << " mm/s" << std::endl;
+    std::cout << "  Mean velocity: " << U_mean * 1000 << " mm/s" << std::endl;
     std::cout << "  Reynolds number: " << Re << std::endl;
+    std::cout << "  Inflow profile: Parabolic (Hagen-Poiseuille)" << std::endl;
     std::cout << "Numerical parameters:" << std::endl;
     std::cout << "  Grid: " << nx << " x " << ny << std::endl;
     std::cout << "  End time: " << endTime << " s" << std::endl;
-    std::cout << "=====================================" << std::endl;
+    std::cout << "================================================" << std::endl;
 
     // 格子の作成
     fluid::Grid grid(nx, ny, Lx, L);
@@ -61,8 +65,8 @@ int main(int argc, char* argv[]) {
     solver.alpha_u = 0.7;  // 速度緩和係数
     solver.alpha_p = 0.3;  // 圧力緩和係数
 
-    // 境界条件
-    fluid::BoundaryCondition bc = fluid::BoundaryCondition::channelFlow(U_in);
+    // 境界条件（放物線流入 = Hagen-Poiseuille）
+    fluid::BoundaryCondition bc = fluid::BoundaryCondition::channelFlowParabolic(U_max);
 
     // CSV出力（SIMPLE法）
     fluid::CSVWriter writer("output/channel_simple");
