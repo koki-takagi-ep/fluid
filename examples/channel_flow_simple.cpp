@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
     // 境界条件
     fluid::BoundaryCondition bc = fluid::BoundaryCondition::channelFlow(U_in);
 
-    // CSV出力
-    fluid::CSVWriter writer("output_channel_simple");
+    // CSV出力（SIMPLE法）
+    fluid::CSVWriter writer("output/channel_simple");
     writer.p_ref = bc.p_ref;
     writer.createOutputDirectory();
     writer.writeMetadata(grid);

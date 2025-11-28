@@ -61,8 +61,8 @@ int main(int argc, char* argv[]) {
     // 境界条件（キャビティ流れ）
     fluid::BoundaryCondition bc = fluid::BoundaryCondition::cavityFlow(U_lid);
 
-    // CSV出力
-    fluid::CSVWriter writer("output_cavity");
+    // CSV出力（Projection法）
+    fluid::CSVWriter writer("output/cavity_projection");
     writer.createOutputDirectory();
     writer.writeMetadata(grid);
 

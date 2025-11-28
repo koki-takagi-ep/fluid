@@ -64,8 +64,8 @@ int main(int argc, char* argv[]) {
     // 境界条件（チャネル流れ: 左流入、右流出、上下滑りなし壁）
     fluid::BoundaryCondition bc = fluid::BoundaryCondition::channelFlow(U_in);
 
-    // CSV出力
-    fluid::CSVWriter writer("output_channel");
+    // CSV出力（Projection法）
+    fluid::CSVWriter writer("output/channel_projection");
     writer.p_ref = bc.p_ref;  // 参照圧力を設定（絶対圧力で出力するため）
     writer.createOutputDirectory();
     writer.writeMetadata(grid);
