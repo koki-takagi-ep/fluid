@@ -73,15 +73,15 @@ CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o: CMakeFiles/channel_flow
 CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o: /Users/koki/Desktop/fluid/examples/channel_flow.cpp
 CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o: CMakeFiles/channel_flow.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/Users/koki/Desktop/fluid/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o -MF CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o.d -o CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o -c /Users/koki/Desktop/fluid/examples/channel_flow.cpp
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o -MF CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o.d -o CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.o -c /Users/koki/Desktop/fluid/examples/channel_flow.cpp
 
 CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.i"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/koki/Desktop/fluid/examples/channel_flow.cpp > CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.i
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /Users/koki/Desktop/fluid/examples/channel_flow.cpp > CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.i
 
 CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.s"
-	/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/koki/Desktop/fluid/examples/channel_flow.cpp -o CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.s
+	/usr/bin/clang++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /Users/koki/Desktop/fluid/examples/channel_flow.cpp -o CMakeFiles/channel_flow.dir/examples/channel_flow.cpp.s
 
 # Object files for target channel_flow
 channel_flow_OBJECTS = \
