@@ -129,14 +129,52 @@ SIMPLE法（Semi-Implicit Method for Pressure-Linked Equations, Patankar & Spald
 
 ### 空間離散化
 
-- **格子**: スタガード格子（MAC格子）
-  - 圧力 $p$: セル中心
-  - 速度 $u$: セル面（x方向）
-  - 速度 $v$: セル面（y方向）
+#### スタガード格子（MAC格子）
 
-- **移流項**: 1次風上差分
-- **拡散項**: 2次中心差分
-- **圧力Poisson方程式**: SOR法（Successive Over-Relaxation）
+Harlow & Welch (1965) により提案されたMAC法では、圧力と速度を異なる位置に配置する：
+
+```
+        v[i,j]
+          |
+    ------+------
+    |            |
+u[i-1,j]  p[i,j]  u[i,j]
+    |            |
+    ------+------
+        v[i,j-1]
+```
+
+- **圧力 $p_{i,j}$**: セル $(i,j)$ の中心
+- **x方向速度 $u_{i,j}$**: セル $(i,j)$ と $(i+1,j)$ の境界（右面）
+- **y方向速度 $v_{i,j}$**: セル $(i,j)$ と $(i,j+1)$ の境界（上面）
+
+スタガード格子の利点：
+1. チェッカーボード状の圧力振動を自然に抑制
+2. 質量保存（連続の式）を正確に離散化
+3. 圧力勾配を直接評価可能
+
+#### 移流項（1次風上差分）
+
+$$
+u \frac{\partial u}{\partial x} \approx u_{i,j} \times \begin{cases}
+\frac{u_{i,j} - u_{i-1,j}}{\Delta x} & (u_{i,j} \geq 0) \\
+\frac{u_{i+1,j} - u_{i,j}}{\Delta x} & (u_{i,j} < 0)
+\end{cases}
+$$
+
+#### 拡散項（2次中心差分）
+
+$$
+\nu \nabla^2 u \approx \nu \left(\frac{u_{i+1,j} - 2u_{i,j} + u_{i-1,j}}{\Delta x^2} + \frac{u_{i,j+1} - 2u_{i,j} + u_{i,j-1}}{\Delta y^2}\right)
+$$
+
+#### 圧力Poisson方程式（SOR法）
+
+$$
+p^{(k+1)}_{i,j} = (1-\omega)p^{(k)}_{i,j} + \frac{\omega}{a_{i,j}}\left(b_{i,j} - \sum_{m \neq (i,j)} a_m p^{(k)}_m\right)
+$$
+
+- $\omega$: 緩和係数（$1 < \omega < 2$、典型値: 1.8）
 
 ### 安定性条件
 
@@ -145,6 +183,32 @@ CFLおよび粘性条件による適応的時間刻み：
 $$
 \Delta t \leq \min\left( \frac{\Delta x}{|u|_{\max}}, \frac{\Delta y}{|v|_{\max}}, \frac{\Delta x^2}{4\nu}, \frac{\Delta y^2}{4\nu} \right)
 $$
+
+詳細は [離散化スキーム](docs/DISCRETIZATION.md) を参照。
+
+## 計算結果
+
+### キャビティ流れ（Re = 100）
+
+![Cavity Flow Result](docs/images/cavity_projection_result.svg)
+
+### チャネル流れ（Re = 30）
+
+**Projection法**
+
+![Channel Flow - Projection](docs/images/channel_projection_result.svg)
+
+**SIMPLE法**
+
+![Channel Flow - SIMPLE](docs/images/channel_simple_result.svg)
+
+### ベンチマーク検証
+
+Ghia, Ghia & Shin (1982) のベンチマークデータとの比較：
+
+![Validation](docs/images/cavity_validation_Re100.svg)
+
+詳細は [計算結果](docs/RESULTS.md) を参照。
 
 ## ライセンス
 
