@@ -231,41 +231,65 @@ def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_uni
     cbar = plt.colorbar(cf, ax=ax)
     setup_colorbar_style(cbar, label=f'Velocity ({vel_unit})')
 
-    # 速度場の補間関数を作成
-    u_interp = RegularGridInterpolator((x_1d, y_1d), u, bounds_error=False, fill_value=0)
-    v_interp = RegularGridInterpolator((x_1d, y_1d), v, bounds_error=False, fill_value=0)
+    # 速度場の補間関数を作成（境界外挿を許可）
+    u_interp = RegularGridInterpolator((x_1d, y_1d), u, bounds_error=False, fill_value=None)
+    v_interp = RegularGridInterpolator((x_1d, y_1d), v, bounds_error=False, fill_value=None)
 
     def velocity(t, pos):
         x, y = pos
-        return [u_interp([x, y])[0], v_interp([x, y])[0]]
+        ux = u_interp([x, y])[0]
+        vy = v_interp([x, y])[0]
+        # NaNの場合は最近傍の値を使用
+        if np.isnan(ux) or np.isnan(vy):
+            return [0.0, 0.0]
+        return [ux, vy]
 
     # 流線の開始点（y方向に均等配置）
-    n_streams = 12
-    y_margin = (y_1d[-1] - y_1d[0]) * 0.05
+    n_streams = 15
+    y_margin = (y_1d[-1] - y_1d[0]) * 0.03  # マージンを小さくして壁に近い流線も描画
     y_starts = np.linspace(y_1d[0] + y_margin, y_1d[-1] - y_margin, n_streams)
-    x_start = x_1d[0] + (x_1d[-1] - x_1d[0]) * 0.02  # 入口付近から開始
+    x_start = x_1d[0]  # 入口の左端から開始（途切れを防ぐ）
 
     # 流線を積分で計算
-    # 積分時間をチャネル長と最小流速から推定（壁付近の遅い流れにも対応）
     x_length = x_1d[-1] - x_1d[0]
-    # 壁付近の流線も右端まで到達するよう、最小速度を基準にする
-    min_u = max(np.percentile(np.abs(u), 10), 1e-6)  # 下位10%の速度
-    t_max = (x_length / min_u) * 1.2  # 余裕を持って1.2倍
+    # 平均速度を基準にして十分な積分時間を確保
+    mean_u = max(np.mean(np.abs(u)), 1e-6)
+    t_max = (x_length / mean_u) * 5.0  # 十分な余裕を持つ
     t_span = [0, t_max]
     # 細かいサンプリングで滑らかな線を描画
-    n_points = 2000
+    n_points = 5000
     t_eval = np.linspace(0, t_max, n_points)
+
+    # 領域の境界（少し内側にマージンを取る）
+    x_min_bound = x_1d[0]
+    x_max_bound = x_1d[-1]
+    y_min_bound = y_1d[0]
+    y_max_bound = y_1d[-1]
 
     for y0 in y_starts:
         try:
-            # eventsなしで積分し、後でマスク
+            # 領域外に出たら停止するイベント関数
+            def out_of_bounds(t, pos):
+                x, y = pos
+                if x < x_min_bound or x > x_max_bound:
+                    return -1
+                if y < y_min_bound or y > y_max_bound:
+                    return -1
+                return 1
+            out_of_bounds.terminal = True
+            out_of_bounds.direction = -1
+
             sol = solve_ivp(velocity, t_span, [x_start, y0], t_eval=t_eval,
-                           method='RK45', dense_output=True)
-            # 領域内の点のみプロット
-            mask = ((sol.y[0] >= x_1d[0]) & (sol.y[0] <= x_1d[-1]) &
-                    (sol.y[1] >= y_1d[0]) & (sol.y[1] <= y_1d[-1]))
-            if np.sum(mask) > 1:
-                ax.plot(sol.y[0][mask], sol.y[1][mask], 'k-', linewidth=0.5, alpha=0.7)
+                           method='RK45', dense_output=True, events=out_of_bounds,
+                           max_step=x_length/100)  # 細かいステップで精度向上
+
+            # 有効な点をプロット
+            if len(sol.y[0]) > 1:
+                # 領域内の点のみをマスク
+                mask = ((sol.y[0] >= x_min_bound) & (sol.y[0] <= x_max_bound) &
+                        (sol.y[1] >= y_min_bound) & (sol.y[1] <= y_max_bound))
+                if np.sum(mask) > 1:
+                    ax.plot(sol.y[0][mask], sol.y[1][mask], 'k-', linewidth=0.6, alpha=0.8)
         except Exception:
             pass
 
