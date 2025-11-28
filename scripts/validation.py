@@ -159,8 +159,8 @@ def setup_axis_style(ax, xlabel='', ylabel='', title=''):
 
     ax.xaxis.set_ticks_position('both')
     ax.yaxis.set_ticks_position('both')
-    ax.tick_params(which='major', direction='out', length=6, width=1, labelsize=10)
-    ax.tick_params(which='minor', direction='out', length=3, width=0.5)
+    ax.tick_params(which='major', direction='in', length=6, width=1, labelsize=10)
+    ax.tick_params(which='minor', direction='in', length=3, width=0.5)
     ax.xaxis.set_minor_locator(AutoMinorLocator(5))
     ax.yaxis.set_minor_locator(AutoMinorLocator(5))
 
@@ -254,8 +254,8 @@ def plot_multi_case_validation(output_dirs: list, labels: list, Re: int, U_lid: 
     colors = plt.cm.tab10.colors
     linestyles = ['-', '--', '-.', ':']
 
-    # プロット作成（正方形に近い2パネル）
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    # プロット作成（正方形の2パネル）
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
 
     # 各ケースのデータを読み込みプロット
     for idx, (output_dir, label) in enumerate(zip(output_dirs, labels)):

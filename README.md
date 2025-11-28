@@ -3,6 +3,54 @@
 2次元非圧縮性Navier-Stokes方程式のための数値解法ライブラリ。
 MAC法（Marker-and-Cell）による空間離散化と、**Projection法**および**SIMPLE法**による時間積分を実装。
 
+## プロジェクト構成
+
+```
+fluid/
+├── include/                  # ヘッダファイル
+│   ├── Grid.hpp              # 格子・速度場・圧力場
+│   ├── SolverBase.hpp        # ソルバー基底クラス
+│   ├── Solver.hpp            # Projection法ソルバー
+│   ├── SimpleSolver.hpp      # SIMPLE法ソルバー
+│   ├── PressureSolver.hpp    # 圧力Poisson方程式ソルバー
+│   ├── BoundaryCondition.hpp # 境界条件
+│   └── CSVWriter.hpp         # データ出力
+├── src/                      # ソースファイル
+├── examples/                 # 計算例
+│   ├── cavity_flow.cpp       # キャビティ流れ（Projection法）
+│   ├── cavity_flow_simple.cpp # キャビティ流れ（SIMPLE法）
+│   ├── channel_flow.cpp      # チャネル流れ（Projection法）
+│   └── channel_flow_simple.cpp # チャネル流れ（SIMPLE法）
+├── scripts/                  # 可視化・解析スクリプト
+│   ├── visualize.py          # 結果の可視化
+│   ├── validation.py         # ベンチマーク検証
+│   └── convergence.py        # 収束解析
+└── docs/                     # ドキュメント
+```
+
+## ドキュメント
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [使用方法](docs/USAGE.md) | ビルド、シミュレーション実行、可視化 |
+| [計算結果](docs/RESULTS.md) | シミュレーション結果と検証 |
+| [離散化スキーム](docs/DISCRETIZATION.md) | 空間・時間離散化の詳細 |
+| [参考文献](docs/REFERENCES.md) | 参考文献一覧 |
+
+## クイックスタート
+
+```bash
+# ビルド
+mkdir build && cd build
+cmake .. && make -j4
+
+# キャビティ流れを実行
+./cavity_flow 64 0.01 10.0
+
+# 結果を可視化
+python ../scripts/visualize.py output/cavity_projection --plot-final
+```
+
 ## 支配方程式
 
 ### Navier-Stokes方程式
@@ -21,7 +69,7 @@ $$
 - $\rho$: 密度 (kg/m³)
 - $\nu$: 動粘性係数 (m²/s)
 
-## §1 数値解法
+## 数値解法
 
 ### Projection法（時間積分）
 
@@ -67,23 +115,9 @@ $$
 \mathbf{u}^{n+1} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p^{n+1}
 $$
 
-#### Projection法の利点
-
-- **分離解法**: 速度と圧力を別々に解くため、連立方程式を直接解くより効率的
-- **物理的直感**: 「圧力は連続の式を満たすように速度場を補正する」という役割が明確
-- **実装の容易さ**: 各ステップが標準的な数値手法で解ける
-
 ### SIMPLE法（時間積分）
 
 SIMPLE法（Semi-Implicit Method for Pressure-Linked Equations, Patankar & Spalding, 1972）は、定常・非定常流れの両方に適用できる圧力-速度連成解法である。
-
-#### アルゴリズム
-
-1. **仮の速度場を計算**: 仮の圧力場 $p^*$ を用いて運動量方程式を解く
-2. **圧力補正方程式を解く**: $p' = p - p^*$ を求める
-3. **速度を補正**: $\mathbf{u} = \mathbf{u}^* + \mathbf{u}'$
-4. **圧力を更新**: $p = p^* + \alpha_p p'$（緩和係数適用）
-5. 収束するまで繰り返し
 
 #### Projection法との比較
 
@@ -92,8 +126,6 @@ SIMPLE法（Semi-Implicit Method for Pressure-Linked Equations, Patankar & Spald
 | 時間積分 | 陽的 | 反復的 |
 | 適用 | 非定常流れ | 定常/非定常流れ |
 | 収束制御 | 時間ステップ | 緩和係数 |
-
-詳細な離散化については [docs/DISCRETIZATION.md](docs/DISCRETIZATION.md) を参照。
 
 ### 空間離散化
 
@@ -113,164 +145,6 @@ CFLおよび粘性条件による適応的時間刻み：
 $$
 \Delta t \leq \min\left( \frac{\Delta x}{|u|_{\max}}, \frac{\Delta y}{|v|_{\max}}, \frac{\Delta x^2}{4\nu}, \frac{\Delta y^2}{4\nu} \right)
 $$
-
-## プロジェクト構成
-
-```
-fluid/
-├── include/                  # ヘッダファイル
-│   ├── Grid.hpp              # 格子・速度場・圧力場
-│   ├── Solver.hpp            # Projection法ソルバー
-│   ├── SimpleSolver.hpp      # SIMPLE法ソルバー
-│   ├── PressureSolver.hpp    # 圧力Poisson方程式ソルバー
-│   ├── BoundaryCondition.hpp # 境界条件
-│   └── CSVWriter.hpp         # データ出力
-├── src/                      # ソースファイル
-├── examples/                 # 計算例
-│   ├── cavity_flow.cpp       # キャビティ流れ（Projection法）
-│   ├── channel_flow.cpp      # チャネル流れ（Projection法）
-│   └── channel_flow_simple.cpp # チャネル流れ（SIMPLE法）
-├── scripts/                  # 可視化・解析スクリプト
-│   ├── visualize.py          # 結果の可視化
-│   ├── validation.py         # ベンチマーク検証
-│   └── convergence.py        # 収束解析
-└── docs/                     # ドキュメント
-    ├── DISCRETIZATION.md     # 離散化スキームの詳細
-    └── REFERENCES.md         # 参考文献
-```
-
-## ビルド
-
-```bash
-mkdir build && cd build
-cmake ..
-make -j4
-```
-
-## 使用例
-
-### キャビティ流れ（Lid-driven cavity）
-
-```bash
-./cavity_flow [nx] [U_lid] [end_time]
-# 例: ./cavity_flow 64 0.01 10.0
-```
-
-上壁が一定速度で移動する正方形キャビティ内の流れ。
-Ghia et al. (1982) のベンチマークデータとの比較検証が可能。
-
-### チャネル流れ - Projection法
-
-```bash
-./channel_flow [nx] [ny] [U_in] [end_time]
-# 例: ./channel_flow 128 32 0.01 2.0
-```
-
-### チャネル流れ - SIMPLE法
-
-```bash
-./channel_flow_simple [nx] [ny] [U_in] [end_time]
-# 例: ./channel_flow_simple 128 32 0.01 1.0
-```
-
-2枚の平行平板間の圧力駆動流れ。
-理論解（放物線速度分布）との比較が可能。
-
-## 可視化
-
-```bash
-cd build
-
-# 最終状態の可視化（Projection法）
-python ../scripts/visualize.py output/cavity_projection --plot-final
-python ../scripts/visualize.py output/channel_projection --plot-final
-
-# SIMPLE法の結果
-python ../scripts/visualize.py output/channel_simple --plot-final
-
-# アニメーション生成
-python ../scripts/visualize.py output/channel_projection --animation
-
-# ベンチマーク検証（キャビティ流れ）
-python ../scripts/validation.py output/cavity_projection
-
-# 収束解析
-python ../scripts/convergence.py output/channel_projection
-```
-
-## 計算結果
-
-### キャビティ流れ（Lid-driven cavity, Re = 100）
-
-上壁が一定速度で移動する正方形キャビティ内の流れのシミュレーション結果（Projection法）：
-
-![Cavity Flow Result](docs/images/cavity_projection_result.svg)
-
-▶︎ 上から順に：速度場（ベクトル＋カラーマップ）、流線、圧力場、中心線速度分布
-
-▶︎ 主渦が右上に形成され、左下に二次渦が発生している様子が確認できる。
-
-### チャネル流れ（Poiseuille flow, Re = 30）
-
-2枚の平行平板間の圧力駆動流れ。入口で一様流入、出口で自然流出境界条件を設定。
-
-#### Projection法による結果
-
-![Channel Flow - Projection](docs/images/channel_projection_result.svg)
-
-▶︎ 上から順に：速度場、流線、圧力場、中心線速度分布
-
-#### SIMPLE法による結果
-
-![Channel Flow - SIMPLE](docs/images/channel_simple_result.svg)
-
-▶︎ 上から順に：速度場、流線、圧力場、中心線速度分布
-
-▶︎ 両手法とも、発達した流れでは放物線状の速度分布（Poiseuille流れの理論解）に近づいていることが確認できる。
-
-### ベンチマーク検証
-
-Ghia, Ghia & Shin (1982) のベンチマークデータとの比較により、数値解の妥当性を検証：
-
-![Validation Re=100](docs/images/cavity_validation_Re100.svg)
-
-▶︎ 異なる格子解像度（64×64, 128×128）での数値解（ライン）とGhiaの参照データ（ドット）を比較。格子を細かくするにつれて参照解に収束していることが確認できる。
-
-## 計算性能
-
-MacBook Air (Apple M2, 24GB RAM) での計算時間：
-
-| ケース | 格子サイズ | 手法 | 総ステップ数 | 計算時間 | 1ステップあたり |
-|--------|-----------|------|-------------|---------|----------------|
-| Cavity Flow (Re=100) | 64×64 | Projection | 1,639 | 7.6 s | 4.6 ms |
-| Channel Flow (Re=30) | 128×32 | Projection | 1,056 | 84 s | 79 ms |
-| Channel Flow (Re=30) | 128×32 | SIMPLE | 264 | 113 s | 430 ms |
-
-▶︎ Projection法はSIMPLE法に比べて1ステップあたり約10倍高速（圧力ソルバーの収束特性の違いによる）
-
-## 検証
-
-### キャビティ流れ
-
-Ghia, Ghia & Shin (1982) のベンチマークデータとの比較により検証：
-- Re = 100, 400, 1000 で良好な一致を確認
-- 中心線速度分布の比較
-
-### チャネル流れ
-
-Poiseuille流れの理論解との比較：
-
-$$
-U_{\max} = \frac{3}{2} U_{\text{mean}}
-$$
-
-$$
-u(y) = U_{\max} \left(1 - \frac{4y^2}{H^2}\right)
-$$
-
-## 参考文献
-
-詳細は [docs/REFERENCES.md](docs/REFERENCES.md) を参照。
 
 ## ライセンス
 

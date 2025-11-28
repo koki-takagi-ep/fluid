@@ -42,6 +42,9 @@ target_link_libraries(channel_flow fluid_solver)
 add_executable(channel_flow_simple examples/channel_flow_simple.cpp)
 target_link_libraries(channel_flow_simple fluid_solver)
 
+add_executable(cavity_flow_simple examples/cavity_flow_simple.cpp)
+target_link_libraries(cavity_flow_simple fluid_solver)
+
 # インストール
 install(TARGETS fluid_solver LIBRARY DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)
