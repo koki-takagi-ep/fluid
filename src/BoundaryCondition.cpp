@@ -152,20 +152,34 @@ void BoundaryCondition::applyPressureBC(Grid& grid) const {
     int nx = grid.nx;
     int ny = grid.ny;
 
-    // 圧力はノイマン条件（∂p/∂n = 0）
-    // 左境界
+    // 注: 圧力はゲージ圧（大気圧基準の相対圧力）として計算する
+    // 絶対圧力 = ゲージ圧 + p_ref（大気圧）
+    // 流出境界でゲージ圧 = 0（絶対圧力 = 大気圧）となるように設定
+
+    // 左境界: ノイマン条件（∂p/∂n = 0）
     for (int j = 1; j <= ny; ++j) {
         grid.p[0][j] = grid.p[1][j];
     }
+
     // 右境界
-    for (int j = 1; j <= ny; ++j) {
-        grid.p[nx + 1][j] = grid.p[nx][j];
+    if (right == BCType::Outflow) {
+        // 流出境界: ディリクレ条件（ゲージ圧 = 0、つまり絶対圧力 = 大気圧）
+        for (int j = 1; j <= ny; ++j) {
+            grid.p[nx + 1][j] = 0.0;
+        }
+    } else {
+        // ノイマン条件（∂p/∂n = 0）
+        for (int j = 1; j <= ny; ++j) {
+            grid.p[nx + 1][j] = grid.p[nx][j];
+        }
     }
-    // 下境界
+
+    // 下境界: ノイマン条件
     for (int i = 1; i <= nx; ++i) {
         grid.p[i][0] = grid.p[i][1];
     }
-    // 上境界
+
+    // 上境界: ノイマン条件
     for (int i = 1; i <= nx; ++i) {
         grid.p[i][ny + 1] = grid.p[i][ny];
     }

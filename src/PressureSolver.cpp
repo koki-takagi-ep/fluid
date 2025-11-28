@@ -31,7 +31,7 @@ int PressureSolver::solve(Grid& grid, const BoundaryCondition& bc, double dt, do
     double dy2 = dy * dy;
     double factor = 2.0 * (1.0 / dx2 + 1.0 / dy2);
 
-    // 初期圧力を0にリセット
+    // 初期圧力を0にリセット（ゲージ圧として計算）
     for (int i = 0; i < nx + 2; ++i) {
         for (int j = 0; j < ny + 2; ++j) {
             grid.p[i][j] = 0.0;

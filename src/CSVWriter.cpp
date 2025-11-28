@@ -71,12 +71,12 @@ void CSVWriter::writePressure(const Grid& grid, int step, double time) const {
     ofs << "# time=" << time << "\n";
     ofs << "x,y,p\n";
 
-    // セル中心での圧力を出力
+    // セル中心での圧力を出力（ゲージ圧 + 参照圧力 = 絶対圧力）
     for (int i = 0; i < grid.nx; ++i) {
         for (int j = 0; j < grid.ny; ++j) {
             double x = grid.cellCenterX(i);
             double y = grid.cellCenterY(j);
-            double p = grid.p[i + 1][j + 1];
+            double p = grid.p[i + 1][j + 1] + p_ref;
 
             ofs << std::fixed << std::setprecision(8)
                 << x << "," << y << "," << p << "\n";
@@ -98,14 +98,14 @@ void CSVWriter::writeAll(const Grid& grid, int step, double time) const {
     ofs << "# time=" << time << "\n";
     ofs << "x,y,u,v,p,magnitude\n";
 
-    // 全フィールドを出力
+    // 全フィールドを出力（圧力は絶対圧力で出力）
     for (int i = 0; i < grid.nx; ++i) {
         for (int j = 0; j < grid.ny; ++j) {
             double x = grid.cellCenterX(i);
             double y = grid.cellCenterY(j);
             double u = grid.uAtCellCenter(i, j);
             double v = grid.vAtCellCenter(i, j);
-            double p = grid.p[i + 1][j + 1];
+            double p = grid.p[i + 1][j + 1] + p_ref;  // ゲージ圧 + 参照圧力
             double mag = grid.velocityMagnitude(i, j);
 
             ofs << std::fixed << std::setprecision(8)

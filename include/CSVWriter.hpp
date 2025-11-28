@@ -19,6 +19,7 @@ namespace fluid {
 class CSVWriter {
 public:
     std::string outputDir;
+    double p_ref = 101325.0;  ///< 参照圧力（大気圧） [Pa]
 
     CSVWriter(const std::string& outputDir = "output");
 
