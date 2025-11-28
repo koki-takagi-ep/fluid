@@ -66,6 +66,7 @@ int main(int argc, char* argv[]) {
 
     // CSV出力
     fluid::CSVWriter writer("output_channel");
+    writer.p_ref = bc.p_ref;  // 参照圧力を設定（絶対圧力で出力するため）
     writer.createOutputDirectory();
     writer.writeMetadata(grid);
 

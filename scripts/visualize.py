@@ -29,7 +29,7 @@ def setup_axis_style(ax, xlabel='', ylabel='', title=''):
     ax.set_xlabel(xlabel, fontsize=10, fontweight='bold')
     ax.set_ylabel(ylabel, fontsize=10, fontweight='bold')
     if title:
-        ax.set_title(title, fontsize=11, fontweight='bold')
+        ax.set_title(title, fontsize=11, fontweight='bold', pad=12)  # タイトルとグラフの間隔
 
     # 目盛りを外向きに設定
     ax.xaxis.set_ticks_position('both')
@@ -40,6 +40,25 @@ def setup_axis_style(ax, xlabel='', ylabel='', title=''):
     # マイナー目盛りを追加
     ax.xaxis.set_minor_locator(AutoMinorLocator(5))
     ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+
+
+def setup_channel_flow_axes(ax, x_max, y_max):
+    """チャネルフロー用の軸設定
+
+    x軸: 0から(x_maxを含む5の倍数)まで、5mm間隔のメジャーティック、1mm間隔のマイナーティック
+    y軸: 0, 1, 2, ... のメジャーティックのみ（マイナーティックなし）
+    """
+    # x軸の設定
+    x_tick_max = int(np.ceil(x_max / 5) * 5)  # 5の倍数に切り上げ
+    ax.set_xlim(0, x_tick_max)
+    ax.xaxis.set_major_locator(MultipleLocator(5))
+    ax.xaxis.set_minor_locator(MultipleLocator(1))
+
+    # y軸の設定
+    y_tick_max = int(np.ceil(y_max))
+    ax.set_ylim(0, y_tick_max)
+    ax.yaxis.set_major_locator(MultipleLocator(1))
+    ax.yaxis.set_minor_locator(plt.NullLocator())  # マイナーティックなし
 
 
 def setup_colorbar_style(cbar, label=''):
@@ -227,20 +246,27 @@ def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_uni
     x_start = x_1d[0] + (x_1d[-1] - x_1d[0]) * 0.02  # 入口付近から開始
 
     # 流線を積分で計算
-    t_span = [0, 100]  # 十分長い時間
-    t_eval = np.linspace(0, 100, 500)
+    # 積分時間をチャネル長と最小流速から推定（壁付近の遅い流れにも対応）
+    x_length = x_1d[-1] - x_1d[0]
+    # 壁付近の流線も右端まで到達するよう、最小速度を基準にする
+    min_u = max(np.percentile(np.abs(u), 10), 1e-6)  # 下位10%の速度
+    t_max = (x_length / min_u) * 1.2  # 余裕を持って1.2倍
+    t_span = [0, t_max]
+    # 細かいサンプリングで滑らかな線を描画
+    n_points = 2000
+    t_eval = np.linspace(0, t_max, n_points)
 
     for y0 in y_starts:
         try:
+            # eventsなしで積分し、後でマスク
             sol = solve_ivp(velocity, t_span, [x_start, y0], t_eval=t_eval,
-                           events=lambda t, y: min(y[0] - x_1d[0], x_1d[-1] - y[0],
-                                                   y[1] - y_1d[0], y_1d[-1] - y[1]))
+                           method='RK45', dense_output=True)
             # 領域内の点のみプロット
             mask = ((sol.y[0] >= x_1d[0]) & (sol.y[0] <= x_1d[-1]) &
                     (sol.y[1] >= y_1d[0]) & (sol.y[1] <= y_1d[-1]))
             if np.sum(mask) > 1:
                 ax.plot(sol.y[0][mask], sol.y[1][mask], 'k-', linewidth=0.5, alpha=0.7)
-        except:
+        except Exception:
             pass
 
     # スタイル設定
@@ -394,20 +420,36 @@ def plot_final_state(output_dir: str, save_file: str = None):
 
     field = load_field(files[-1], nx, ny)
 
+    # チャネルフローかどうかを判定（アスペクト比で判断）
+    x_range = field['x'].max() - field['x'].min()
+    y_range = field['y'].max() - field['y'].min()
+    is_channel_flow = (x_range / y_range) > 3  # アスペクト比が3以上ならチャネルフロー
+
+    # mm単位での最大値
+    L_scale = 1000.0  # mm
+    x_max_mm = field['x'].max() * L_scale
+    y_max_mm = field['y'].max() * L_scale
+
     fig, axes = plt.subplots(2, 2, figsize=(10, 9))
 
     # 速度場（ベクトル＋カラー）
     ax = axes[0, 0]
     plot_velocity_field(field, ax=ax, show_streamlines=False,
                         title='Velocity Field')
+    if is_channel_flow:
+        setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
 
     # 流線
     ax = axes[0, 1]
     plot_streamlines(field, ax=ax, title='Streamlines')
+    if is_channel_flow:
+        setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
 
     # 圧力場
     ax = axes[1, 0]
     plot_pressure_field(field, ax=ax, title='Pressure Field')
+    if is_channel_flow:
+        setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
 
     # 中心線速度プロファイル
     ax = axes[1, 1]
