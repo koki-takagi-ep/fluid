@@ -19,6 +19,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 # ライブラリ
 add_library(fluid_solver
     src/Grid.cpp
+    src/SolverBase.cpp
     src/Solver.cpp
     src/SimpleSolver.cpp
     src/PressureSolver.cpp
