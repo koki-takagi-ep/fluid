@@ -1,7 +1,7 @@
 # Incompressible Navier-Stokes Solver
 
 2次元非圧縮性Navier-Stokes方程式のための数値解法ライブラリ。
-MAC法（Marker-and-Cell）による空間離散化と、**Projection法**および**SIMPLE法**による時間積分を実装。
+MAC法（Marker-and-Cell）による空間離散化と、**Projection法**、**SIMPLE法**、**PISO法**による時間積分を実装。
 
 ## プロジェクト構成
 
@@ -12,6 +12,7 @@ fluid/
 │   ├── SolverBase.hpp        # ソルバー基底クラス
 │   ├── Solver.hpp            # Projection法ソルバー
 │   ├── SimpleSolver.hpp      # SIMPLE法ソルバー
+│   ├── PisoSolver.hpp        # PISO法ソルバー
 │   ├── PressureSolver.hpp    # 圧力Poisson方程式ソルバー
 │   ├── BoundaryCondition.hpp # 境界条件
 │   └── CSVWriter.hpp         # データ出力
@@ -19,8 +20,10 @@ fluid/
 ├── examples/                 # 計算例
 │   ├── cavity_flow.cpp       # キャビティ流れ（Projection法）
 │   ├── cavity_flow_simple.cpp # キャビティ流れ（SIMPLE法）
+│   ├── cavity_flow_piso.cpp  # キャビティ流れ（PISO法）
 │   ├── channel_flow.cpp      # チャネル流れ（Projection法）
-│   └── channel_flow_simple.cpp # チャネル流れ（SIMPLE法）
+│   ├── channel_flow_simple.cpp # チャネル流れ（SIMPLE法）
+│   └── channel_flow_piso.cpp # チャネル流れ（PISO法）
 ├── scripts/                  # 可視化・解析スクリプト
 │   ├── visualize.py          # 結果の可視化
 │   ├── validation.py         # キャビティ流れ検証（Ghia et al.）
@@ -120,13 +123,112 @@ $$
 
 SIMPLE法（Semi-Implicit Method for Pressure-Linked Equations, Patankar & Spalding, 1972）は、定常・非定常流れの両方に適用できる圧力-速度連成解法である。
 
-#### Projection法との比較
+#### アルゴリズム
 
-| 特徴 | Projection法 | SIMPLE法 |
-|------|-------------|----------|
-| 時間積分 | 陽的 | 反復的 |
-| 適用 | 非定常流れ | 定常/非定常流れ |
-| 収束制御 | 時間ステップ | 緩和係数 |
+SIMPLE法はProjection法と類似した構造を持つが、緩和係数を用いた反復により安定性を高めている：
+
+**Step 1. 推定速度場の計算**
+
+圧力場 $p^*$ を用いて運動量方程式を離散化し、中間速度 $\mathbf{u}^*$ を計算：
+
+$$
+\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n - \frac{1}{\rho}\nabla p^*
+$$
+
+**Step 2. 圧力補正方程式**
+
+連続の式を満たすための圧力補正 $p'$ を求める：
+
+$$
+\nabla^2 p' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^*
+$$
+
+**Step 3. 圧力と速度の緩和補正**
+
+緩和係数を用いて圧力と速度を更新：
+
+$$
+p^{n+1} = p^* + \alpha_p p', \quad \mathbf{u}^{n+1} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p'
+$$
+
+- $\alpha_p$: 圧力緩和係数（典型値: 0.3）
+- $\alpha_u$: 速度緩和係数（典型値: 0.7）
+
+**Step 4.** 収束するまでStep 1-3を繰り返す。
+
+### PISO法（時間積分）
+
+PISO法（Pressure-Implicit with Splitting of Operators, Issa, 1986）は、SIMPLE法を改良した非反復式の予測-補正スキームである。特に**非定常流れの計算**に適しており、外部反復（outer iteration）を必要としない点が大きな特徴である。
+
+#### なぜPISO法を使うのか？
+
+SIMPLE法では各タイムステップで複数回の外部反復が必要となり、非定常計算では計算コストが高くなる。PISO法は**複数回の圧力補正ステップ**を導入することで、1回の外部反復で十分な精度を達成する。これにより：
+
+1. **計算効率の向上**: 外部反復が不要
+2. **安定性の確保**: 複数の補正ステップで発散を抑制
+3. **非定常問題への適合性**: 時間発展問題に特に有効
+
+#### アルゴリズム
+
+PISO法は1回の**予測ステップ（Predictor）** と複数回の**補正ステップ（Corrector）** から構成される。標準的には2回の補正ステップ（PISO-2）が使用される。
+
+**Step 1. 予測ステップ（Predictor）**
+
+Projection法と同様に、圧力項を除いた運動量方程式を解き、中間速度場 $\mathbf{u}^*$ を求める：
+
+$$
+\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n
+$$
+
+**Step 2. 第1補正ステップ（First Corrector）**
+
+第1圧力補正 $p'$ を求めるPoisson方程式を解く：
+
+$$
+\nabla^2 p' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^*
+$$
+
+速度と圧力を補正：
+
+$$
+\mathbf{u}^{**} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p', \quad p^* = p^n + p'
+$$
+
+**Step 3. 第2補正ステップ（Second Corrector）**
+
+第1補正後の速度場 $\mathbf{u}^{**}$ の発散を除去するため、第2圧力補正 $p''$ を求める：
+
+$$
+\nabla^2 p'' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^{**}
+$$
+
+最終的な速度と圧力を得る：
+
+$$
+\mathbf{u}^{n+1} = \mathbf{u}^{**} - \frac{\Delta t}{\rho} \nabla p'', \quad p^{n+1} = p^* + p''
+$$
+
+#### 追加の補正ステップ
+
+必要に応じて3回目以降の補正ステップを追加できる（PISO-3, PISO-4など）。補正回数を増やすことで精度は向上するが、計算コストも増加する。本実装では `nCorrectors` パラメータで補正回数を指定可能。
+
+#### 参考文献
+
+- Issa, R. I. (1986). "Solution of the implicitly discretised fluid flow equations by operator-splitting." *Journal of Computational Physics*, 62(1), 40-65. https://doi.org/10.1016/0021-9991(86)90099-9
+- Ferziger, J. H., & Perić, M. (2002). *Computational Methods for Fluid Dynamics* (3rd ed.). Springer.
+- Versteeg, H. K., & Malalasekera, W. (2007). *An Introduction to Computational Fluid Dynamics: The Finite Volume Method* (2nd ed.). Pearson.
+
+### 手法の比較
+
+| 特徴 | Projection法 | SIMPLE法 | PISO法 |
+|------|-------------|----------|--------|
+| 提案者 | Chorin (1968) | Patankar & Spalding (1972) | Issa (1986) |
+| 外部反復 | 不要 | 必要 | 不要 |
+| 圧力補正 | 1回 | 1回（反復内） | 複数回（2回以上） |
+| 緩和係数 | 不要 | 必要 ($\alpha_p \approx 0.3$) | 不要 |
+| 適用 | 非定常流れ | 定常/非定常流れ | 非定常流れ |
+| 精度 | 1次（時間） | 収束まで反復 | 2次以上（補正回数依存） |
+| 計算コスト | 低 | 中〜高 | 中 |
 
 ### 空間離散化
 
