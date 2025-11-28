@@ -42,6 +42,32 @@ void BoundaryCondition::applyLeftBC(Grid& grid) const {
             }
             break;
 
+        case BCType::InflowParabolic:
+            // 放物線流入プロファイル: u(y) = U_max * (1 - (2y/H - 1)^2)
+            // u_left には最大速度 U_max が格納されている
+            {
+                double H = grid.ly;  // チャネル高さ
+                double U_max = u_left;
+                for (int j = 0; j < ny + 2; ++j) {
+                    // u[0][j] は左境界上のu速度
+                    // y座標を計算（スタガード格子：uはセル境界にある）
+                    double y = (j - 0.5) * grid.dy;  // j=0 はゴーストセル
+                    // 正規化: eta = 2*y/H - 1 ∈ [-1, 1] at y ∈ [0, H]
+                    double eta = 2.0 * y / H - 1.0;
+                    // 放物線: u = U_max * (1 - eta^2)
+                    double u_profile = U_max * (1.0 - eta * eta);
+                    // 境界外（y < 0 または y > H）では0にクランプ
+                    if (y < 0.0 || y > H) {
+                        u_profile = 0.0;
+                    }
+                    grid.u[0][j] = u_profile;
+                }
+                for (int j = 0; j < ny + 1; ++j) {
+                    grid.v[0][j] = 2.0 * v_left - grid.v[1][j];
+                }
+            }
+            break;
+
         case BCType::Outflow:
             for (int j = 0; j < ny + 2; ++j) {
                 grid.u[0][j] = grid.u[1][j];  // ∂u/∂x = 0
@@ -246,6 +272,19 @@ BoundaryCondition BoundaryCondition::channelFlow(double inflowVelocity) {
     bc.top = BCType::NoSlip;
 
     bc.u_left = inflowVelocity;
+
+    return bc;
+}
+
+BoundaryCondition BoundaryCondition::channelFlowParabolic(double maxVelocity) {
+    BoundaryCondition bc;
+    bc.left = BCType::InflowParabolic;
+    bc.right = BCType::Outflow;
+    bc.bottom = BCType::NoSlip;
+    bc.top = BCType::NoSlip;
+
+    // u_left に最大速度を格納（applyLeftBC で放物線計算に使用）
+    bc.u_left = maxVelocity;
 
     return bc;
 }

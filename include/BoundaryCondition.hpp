@@ -16,11 +16,12 @@ namespace fluid {
  * @brief 境界条件の種類
  */
 enum class BCType {
-    NoSlip,      ///< 滑りなし壁（Dirichlet条件）: u = u_wall
-    Slip,        ///< 滑り壁（Neumann条件）: ∂u_t/∂n = 0, u_n = 0
-    Inflow,      ///< 流入境界: u = u_in（指定値）
-    Outflow,     ///< 流出境界: ∂u/∂n = 0（Neumann条件）
-    Periodic     ///< 周期境界
+    NoSlip,           ///< 滑りなし壁（Dirichlet条件）: u = u_wall
+    Slip,             ///< 滑り壁（Neumann条件）: ∂u_t/∂n = 0, u_n = 0
+    Inflow,           ///< 流入境界: u = u_in（指定値、一様分布）
+    InflowParabolic,  ///< 流入境界: 放物線分布（Hagen-Poiseuille流れ用）
+    Outflow,          ///< 流出境界: ∂u/∂n = 0（Neumann条件）
+    Periodic          ///< 周期境界
 };
 
 /**
@@ -135,7 +136,7 @@ public:
     static BoundaryCondition cavityFlow(double lidVelocity = 1.0);
 
     /**
-     * @brief Channel flow (Poiseuille flow) の境界条件
+     * @brief Channel flow (Poiseuille flow) の境界条件（一様流入）
      *
      * - 左: Inflow (u = inflowVelocity)
      * - 右: Outflow (∂u/∂x = 0)
@@ -145,6 +146,23 @@ public:
      * @return 境界条件オブジェクト
      */
     static BoundaryCondition channelFlow(double inflowVelocity = 1.0);
+
+    /**
+     * @brief Channel flow の境界条件（放物線流入 = Hagen-Poiseuille）
+     *
+     * - 左: InflowParabolic (u = U_max * (1 - (y/H)^2))
+     * - 右: Outflow (∂u/∂x = 0)
+     * - 上下: NoSlip (u = v = 0)
+     *
+     * 放物線プロファイル: u(y) = U_max * (1 - (2y/H - 1)^2)
+     * ここで y ∈ [0, H], 最大速度は y = H/2 で発生
+     *
+     * 平均流速との関係: U_mean = (2/3) * U_max
+     *
+     * @param maxVelocity 最大速度（チャネル中心での速度） [m/s]
+     * @return 境界条件オブジェクト
+     */
+    static BoundaryCondition channelFlowParabolic(double maxVelocity = 1.0);
 
 private:
     /// 左境界条件を適用

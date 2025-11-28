@@ -10,9 +10,24 @@
 
 ▶︎ 主渦が右上に形成され、左下に二次渦が発生している様子が確認できる。
 
-## チャネル流れ（Poiseuille flow, Re = 30）
+## チャネル流れ（Hagen-Poiseuille flow, Re = 30）
 
-2枚の平行平板間の圧力駆動流れ。入口で一様流入、出口で自然流出境界条件を設定。
+2枚の平行平板間の完全発達層流。入口で**放物線プロファイル**（Hagen-Poiseuille分布）を与え、出口で自然流出境界条件を設定。
+
+### 理論解
+
+Hagen-Poiseuille流れの速度分布：
+
+$$
+u(y) = U_{\max} \left(1 - \left(\frac{2y}{H} - 1\right)^2\right)
+$$
+
+ここで：
+- $U_{\max}$: 中心（$y = H/2$）での最大速度
+- $H$: チャネル高さ
+- $y$: 壁面からの距離（$0 \leq y \leq H$）
+
+平均流速との関係：$U_{\text{mean}} = \frac{2}{3} U_{\max}$
 
 ### Projection法による結果
 
@@ -20,13 +35,7 @@
 
 ▶︎ 上から順に：速度場、流線、圧力場、中心線速度分布
 
-### SIMPLE法による結果
-
-![Channel Flow - SIMPLE](images/channel_simple_result.svg)
-
-▶︎ 上から順に：速度場、流線、圧力場、中心線速度分布
-
-▶︎ 両手法とも、発達した流れでは放物線状の速度分布（Poiseuille流れの理論解）に近づいていることが確認できる。
+▶︎ 流入から放物線分布を与えているため、チャネル全体で完全発達流が維持されている。
 
 ## ベンチマーク検証
 
@@ -64,14 +73,26 @@ Ghia, Ghia & Shin (1982) のベンチマークデータとの比較により検�
 - Re = 100, 400, 1000 で良好な一致を確認
 - 中心線速度分布の比較
 
-### チャネル流れ
+### チャネル流れ（Hagen-Poiseuille理論解）
 
-Poiseuille流れの理論解との比較：
+Hagen-Poiseuille流れの理論解との比較により検証：
+
+![Channel Validation](images/channel_poiseuille_validation.svg)
+
+▶︎ 左：チャネル内の複数位置での速度プロファイル。各位置で理論解（黒線）と良好に一致。
+
+▶︎ 右：出口付近（$x/L_x = 0.9$）での詳細比較。
+
+**検証結果：**
+- RMS誤差（相対）: 0.04%以下
+- 最大誤差（相対）: 0.09%以下
+
+理論解：
 
 $$
-U_{\max} = \frac{3}{2} U_{\text{mean}}
+u(y) = U_{\max} \left(1 - \left(\frac{2y}{H} - 1\right)^2\right)
 $$
 
 $$
-u(y) = U_{\max} \left(1 - \frac{4y^2}{H^2}\right)
+U_{\text{mean}} = \frac{2}{3} U_{\max}
 $$

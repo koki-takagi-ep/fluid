@@ -23,7 +23,8 @@ fluid/
 │   └── channel_flow_simple.cpp # チャネル流れ（SIMPLE法）
 ├── scripts/                  # 可視化・解析スクリプト
 │   ├── visualize.py          # 結果の可視化
-│   ├── validation.py         # ベンチマーク検証
+│   ├── validation.py         # キャビティ流れ検証（Ghia et al.）
+│   ├── validation_channel.py # チャネル流れ検証（Hagen-Poiseuille）
 │   └── convergence.py        # 収束解析
 └── docs/                     # ドキュメント
 ```
@@ -192,21 +193,33 @@ $$
 
 ![Cavity Flow Result](docs/images/cavity_projection_result.svg)
 
-### チャネル流れ（Re = 30）
+### チャネル流れ（Hagen-Poiseuille, Re = 30）
+
+放物線流入プロファイル（完全発達流）による平行平板間流れ。
 
 **Projection法**
 
 ![Channel Flow - Projection](docs/images/channel_projection_result.svg)
 
-**SIMPLE法**
-
-![Channel Flow - SIMPLE](docs/images/channel_simple_result.svg)
-
 ### ベンチマーク検証
+
+#### キャビティ流れ：Ghia et al. (1982)
 
 Ghia, Ghia & Shin (1982) のベンチマークデータとの比較：
 
-![Validation](docs/images/cavity_validation_Re100.svg)
+![Cavity Validation](docs/images/cavity_validation_Re100.svg)
+
+#### チャネル流れ：Hagen-Poiseuille理論解
+
+放物線速度分布の理論解との比較：
+
+$$
+u(y) = U_{\max} \left(1 - \left(\frac{2y}{H} - 1\right)^2\right)
+$$
+
+![Channel Validation](docs/images/channel_poiseuille_validation.svg)
+
+▶︎ 数値解と理論解のRMS誤差は0.04%以下で良好な一致を確認。
 
 詳細は [計算結果](docs/RESULTS.md) を参照。
 
