@@ -289,7 +289,14 @@ def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_uni
                 mask = ((sol.y[0] >= x_min_bound) & (sol.y[0] <= x_max_bound) &
                         (sol.y[1] >= y_min_bound) & (sol.y[1] <= y_max_bound))
                 if np.sum(mask) > 1:
-                    ax.plot(sol.y[0][mask], sol.y[1][mask], 'k-', linewidth=0.6, alpha=0.8)
+                    # 流線を左端(x=0)まで延長
+                    x_line = sol.y[0][mask]
+                    y_line = sol.y[1][mask]
+                    if x_line[0] > x_min_bound:
+                        # 左端まで水平に延長
+                        x_line = np.insert(x_line, 0, x_min_bound)
+                        y_line = np.insert(y_line, 0, y_line[0])
+                    ax.plot(x_line, y_line, 'k-', linewidth=0.3, alpha=1.0)
         except Exception:
             pass
 

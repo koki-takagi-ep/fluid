@@ -56,9 +56,9 @@ public:
      * @brief ソルバーを初期化
      * @param omega SOR緩和係数（デフォルト: 1.8）
      * @param maxIter 最大反復回数（デフォルト: 10000）
-     * @param tol 収束許容値（デフォルト: 1e-5）
+     * @param tol 収束許容値（発散の閾値、デフォルト: 1e-6）
      */
-    PressureSolver(double omega = 1.8, int maxIter = 10000, double tol = 1e-5);
+    PressureSolver(double omega = 1.8, int maxIter = 10000, double tol = 1e-6);
 
     //==========================================================================
     // ソルバー
