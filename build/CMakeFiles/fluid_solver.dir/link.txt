@@ -1,2 +1,0 @@
-/usr/bin/ar qc libfluid_solver.a CMakeFiles/fluid_solver.dir/src/Grid.cpp.o CMakeFiles/fluid_solver.dir/src/Solver.cpp.o CMakeFiles/fluid_solver.dir/src/PressureSolver.cpp.o CMakeFiles/fluid_solver.dir/src/BoundaryCondition.cpp.o CMakeFiles/fluid_solver.dir/src/CSVWriter.cpp.o
-/usr/bin/ranlib libfluid_solver.a
