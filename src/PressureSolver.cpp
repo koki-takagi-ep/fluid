@@ -1,4 +1,5 @@
 #include "PressureSolver.hpp"
+#include "Constants.hpp"
 #include <cmath>
 #include <algorithm>
 
@@ -29,14 +30,10 @@ int PressureSolver::solve(Grid& grid, const BoundaryCondition& bc, double dt, do
 
     double dx2 = dx * dx;
     double dy2 = dy * dy;
-    double factor = 2.0 * (1.0 / dx2 + 1.0 / dy2);
+    double factor = constants::LAPLACIAN_CENTER_COEFF * (1.0 / dx2 + 1.0 / dy2);
 
-    // 初期圧力を0にリセット（ゲージ圧として計算）
-    for (int i = 0; i < nx + 2; ++i) {
-        for (int j = 0; j < ny + 2; ++j) {
-            grid.p[i][j] = 0.0;
-        }
-    }
+    // 圧力を0にリセットせず、前回の解を初期値として使用（収束を早める）
+    // Grid側で初期化されているので、ここではリセットしない
 
     // SOR反復
     for (int iter = 0; iter < maxIterations; ++iter) {
@@ -53,14 +50,17 @@ int PressureSolver::solve(Grid& grid, const BoundaryCondition& bc, double dt, do
 
                     double rhs = computeRHS(grid, i, j, dt, rho);
 
+                    // Poisson方程式の残差: ∇²p - rhs
+                    double laplacian_p = (grid.p[i + 1][j] - 2.0 * grid.p[i][j] + grid.p[i - 1][j]) / dx2 +
+                                         (grid.p[i][j + 1] - 2.0 * grid.p[i][j] + grid.p[i][j - 1]) / dy2;
+                    double residual = std::abs(laplacian_p - rhs);
+                    maxResidual = std::max(maxResidual, residual);
+
                     double p_new = (
                         (grid.p[i + 1][j] + grid.p[i - 1][j]) / dx2 +
                         (grid.p[i][j + 1] + grid.p[i][j - 1]) / dy2 -
                         rhs
                     ) / factor;
-
-                    double residual = std::abs(p_new - grid.p[i][j]);
-                    maxResidual = std::max(maxResidual, residual);
 
                     grid.p[i][j] = grid.p[i][j] + omega * (p_new - grid.p[i][j]);
                 }
@@ -72,7 +72,9 @@ int PressureSolver::solve(Grid& grid, const BoundaryCondition& bc, double dt, do
 
         lastResidual = maxResidual;
 
-        if (maxResidual < tolerance) {
+        // 残差はρ/dtでスケールされているので、発散の閾値に変換
+        // tolerance は発散の閾値として解釈（例: 1e-6 なら ∇・u < 1e-6）
+        if (maxResidual < tolerance * rho / dt) {
             return iter + 1;
         }
     }

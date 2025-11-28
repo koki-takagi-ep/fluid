@@ -1,7 +1,7 @@
 # Incompressible Navier-Stokes Solver
 
 2次元非圧縮性Navier-Stokes方程式のための数値解法ライブラリ。
-MAC法（Marker-and-Cell）とProjection法に基づく実装。
+MAC法（Marker-and-Cell）による空間離散化と、**Projection法**および**SIMPLE法**による時間積分を実装。
 
 ## 支配方程式
 
@@ -16,10 +16,10 @@ $$
 $$
 
 ここで：
-- $\mathbf{u} = (u, v)$: 速度ベクトル [m/s]
-- $p$: 圧力 [Pa]
-- $\rho$: 密度 [kg/m³]
-- $\nu$: 動粘性係数 [m²/s]
+- $\mathbf{u} = (u, v)$: 速度ベクトル (m/s)
+- $p$: 圧力 (Pa)
+- $\rho$: 密度 (kg/m³)
+- $\nu$: 動粘性係数 (m²/s)
 
 ## §1 数値解法
 
@@ -73,6 +73,28 @@ $$
 - **物理的直感**: 「圧力は連続の式を満たすように速度場を補正する」という役割が明確
 - **実装の容易さ**: 各ステップが標準的な数値手法で解ける
 
+### SIMPLE法（時間積分）
+
+SIMPLE法（Semi-Implicit Method for Pressure-Linked Equations, Patankar & Spalding, 1972）は、定常・非定常流れの両方に適用できる圧力-速度連成解法である。
+
+#### アルゴリズム
+
+1. **仮の速度場を計算**: 仮の圧力場 $p^*$ を用いて運動量方程式を解く
+2. **圧力補正方程式を解く**: $p' = p - p^*$ を求める
+3. **速度を補正**: $\mathbf{u} = \mathbf{u}^* + \mathbf{u}'$
+4. **圧力を更新**: $p = p^* + \alpha_p p'$（緩和係数適用）
+5. 収束するまで繰り返し
+
+#### Projection法との比較
+
+| 特徴 | Projection法 | SIMPLE法 |
+|------|-------------|----------|
+| 時間積分 | 陽的 | 反復的 |
+| 適用 | 非定常流れ | 定常/非定常流れ |
+| 収束制御 | 時間ステップ | 緩和係数 |
+
+詳細な離散化については [docs/DISCRETIZATION.md](docs/DISCRETIZATION.md) を参照。
+
 ### 空間離散化
 
 - **格子**: スタガード格子（MAC格子）
@@ -96,22 +118,25 @@ $$
 
 ```
 fluid/
-├── include/              # ヘッダファイル
-│   ├── Grid.hpp          # 格子・速度場・圧力場
-│   ├── Solver.hpp        # 時間発展ソルバー
-│   ├── PressureSolver.hpp # 圧力Poisson方程式ソルバー
+├── include/                  # ヘッダファイル
+│   ├── Grid.hpp              # 格子・速度場・圧力場
+│   ├── Solver.hpp            # Projection法ソルバー
+│   ├── SimpleSolver.hpp      # SIMPLE法ソルバー
+│   ├── PressureSolver.hpp    # 圧力Poisson方程式ソルバー
 │   ├── BoundaryCondition.hpp # 境界条件
-│   └── CSVWriter.hpp     # データ出力
-├── src/                  # ソースファイル
-├── examples/             # 計算例
-│   ├── cavity_flow.cpp   # キャビティ流れ（Lid-driven cavity）
-│   └── channel_flow.cpp  # チャネル流れ（Poiseuille flow）
-├── scripts/              # 可視化・解析スクリプト
-│   ├── visualize.py      # 結果の可視化
-│   ├── validation.py     # ベンチマーク検証
-│   └── convergence.py    # 収束解析
-└── docs/                 # ドキュメント
-    └── REFERENCES.md     # 参考文献
+│   └── CSVWriter.hpp         # データ出力
+├── src/                      # ソースファイル
+├── examples/                 # 計算例
+│   ├── cavity_flow.cpp       # キャビティ流れ（Projection法）
+│   ├── channel_flow.cpp      # チャネル流れ（Projection法）
+│   └── channel_flow_simple.cpp # チャネル流れ（SIMPLE法）
+├── scripts/                  # 可視化・解析スクリプト
+│   ├── visualize.py          # 結果の可視化
+│   ├── validation.py         # ベンチマーク検証
+│   └── convergence.py        # 収束解析
+└── docs/                     # ドキュメント
+    ├── DISCRETIZATION.md     # 離散化スキームの詳細
+    └── REFERENCES.md         # 参考文献
 ```
 
 ## ビルド
@@ -127,18 +152,25 @@ make -j4
 ### キャビティ流れ（Lid-driven cavity）
 
 ```bash
-./cavity_flow [nx] [Re] [end_time]
-# 例: ./cavity_flow 128 100 20.0
+./cavity_flow [nx] [U_lid] [end_time]
+# 例: ./cavity_flow 64 0.01 10.0
 ```
 
 上壁が一定速度で移動する正方形キャビティ内の流れ。
 Ghia et al. (1982) のベンチマークデータとの比較検証が可能。
 
-### チャネル流れ（Poiseuille flow）
+### チャネル流れ - Projection法
 
 ```bash
 ./channel_flow [nx] [ny] [U_in] [end_time]
-# 例: ./channel_flow 256 32 0.01 5.0
+# 例: ./channel_flow 128 32 0.01 2.0
+```
+
+### チャネル流れ - SIMPLE法
+
+```bash
+./channel_flow_simple [nx] [ny] [U_in] [end_time]
+# 例: ./channel_flow_simple 128 32 0.01 1.0
 ```
 
 2枚の平行平板間の圧力駆動流れ。
@@ -149,28 +181,48 @@ Ghia et al. (1982) のベンチマークデータとの比較検証が可能。
 ```bash
 cd build
 
-# 最終状態の可視化
-python ../scripts/visualize.py output_cavity --plot-final
+# 最終状態の可視化（Projection法）
+python ../scripts/visualize.py output/cavity_projection --plot-final
+python ../scripts/visualize.py output/channel_projection --plot-final
+
+# SIMPLE法の結果
+python ../scripts/visualize.py output/channel_simple --plot-final
 
 # アニメーション生成
-python ../scripts/visualize.py output_channel --animation --save animation.gif
+python ../scripts/visualize.py output/channel_projection --animation
 
 # ベンチマーク検証（キャビティ流れ）
-python ../scripts/validation.py output_cavity
+python ../scripts/validation.py output/cavity_projection
 
 # 収束解析
-python ../scripts/convergence.py output_channel
+python ../scripts/convergence.py output/channel_projection
 ```
 
 ## 計算結果
 
 ### キャビティ流れ（Lid-driven cavity, Re = 100）
 
-上壁が一定速度で移動する正方形キャビティ内の流れのシミュレーション結果：
+上壁が一定速度で移動する正方形キャビティ内の流れのシミュレーション結果（Projection法）：
 
-![Cavity Flow Result](docs/images/cavity_flow_result.png)
+![Cavity Flow Result](docs/images/cavity_projection_result.png)
 
-**左上**: 速度場（ベクトル）とカラーマップ | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+**左上**: 速度場（ベクトル＋カラーマップ） | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+
+主渦が右上に形成され、左下に二次渦が発生している様子が確認できる。
+
+### チャネル流れ（Poiseuille flow, Re = 30）
+
+2枚の平行平板間の圧力駆動流れ。入口で一様流入、出口で自然流出境界条件を設定。
+
+#### Projection法による結果
+
+![Channel Flow - Projection](docs/images/channel_projection_result.png)
+
+#### SIMPLE法による結果
+
+![Channel Flow - SIMPLE](docs/images/channel_simple_result.png)
+
+両手法とも、発達した流れでは放物線状の速度分布（Poiseuille流れの理論解）に近づいていることが確認できる。
 
 ### ベンチマーク検証
 

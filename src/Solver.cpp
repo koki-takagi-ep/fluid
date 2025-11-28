@@ -1,4 +1,5 @@
 #include "Solver.hpp"
+#include "Constants.hpp"
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -10,7 +11,7 @@
 namespace fluid {
 
 Solver::Solver(double rho, double nu, double dt)
-    : rho(rho), nu(nu), dt(dt), cfl(0.5), autoTimeStep(true)
+    : rho(rho), nu(nu), dt(dt), cfl(constants::DEFAULT_CFL), autoTimeStep(true)
 {
 }
 
@@ -31,94 +32,90 @@ double Solver::computeTimeStep(const Grid& grid) const {
     }
 
     // 移流CFL条件
-    double dt_conv = 1e10;
-    if (maxU > 1e-10) dt_conv = std::min(dt_conv, cfl * grid.dx / maxU);
-    if (maxV > 1e-10) dt_conv = std::min(dt_conv, cfl * grid.dy / maxV);
+    double dt_conv = constants::TIMESTEP_MAX_INITIAL;
+    if (maxU > constants::VELOCITY_ZERO_THRESHOLD) {
+        dt_conv = std::min(dt_conv, cfl * grid.dx / maxU);
+    }
+    if (maxV > constants::VELOCITY_ZERO_THRESHOLD) {
+        dt_conv = std::min(dt_conv, cfl * grid.dy / maxV);
+    }
 
     // 拡散CFL条件
-    double dt_diff = cfl * 0.5 / (nu * (1.0 / (grid.dx * grid.dx) + 1.0 / (grid.dy * grid.dy)));
+    double dt_diff = cfl * constants::VISCOUS_CFL_FACTOR
+                   / (nu * (1.0 / (grid.dx * grid.dx) + 1.0 / (grid.dy * grid.dy)));
 
     return std::min(dt_conv, dt_diff);
 }
 
 double Solver::convectionU(const Grid& grid, int i, int j) const {
     // u速度の移流項: (u・∇)u at u[i][j]
-    double dx = grid.dx;
-    double dy = grid.dy;
+    // 1次精度風上差分スキーム
+    const double dx = grid.dx;
+    const double dy = grid.dy;
+    const double u_here = grid.u[i][j];
 
-    // u速度の補間
-    double u_here = grid.u[i][j];
+    // ∂u/∂x: 風上差分
+    const double dudx = (u_here >= 0)
+        ? (u_here - grid.u[i - 1][j]) / dx
+        : (grid.u[i + 1][j] - u_here) / dx;
 
-    // 風上差分
-    double u_e = 0.5 * (grid.u[i][j] + grid.u[i + 1][j]);
-    double u_w = 0.5 * (grid.u[i - 1][j] + grid.u[i][j]);
+    // v速度をu点に補間（4点平均）
+    const double v_here = constants::FOUR_POINT_AVERAGE_COEFF
+        * (grid.v[i][j - 1] + grid.v[i + 1][j - 1] + grid.v[i][j] + grid.v[i + 1][j]);
 
-    double dudx;
-    if (u_here >= 0) {
-        dudx = (u_here - grid.u[i - 1][j]) / dx;
-    } else {
-        dudx = (grid.u[i + 1][j] - u_here) / dx;
-    }
-
-    // v速度をu点に補間
-    double v_here = 0.25 * (grid.v[i][j - 1] + grid.v[i + 1][j - 1] +
-                           grid.v[i][j] + grid.v[i + 1][j]);
-
-    double dudy;
-    if (v_here >= 0) {
-        dudy = (u_here - grid.u[i][j - 1]) / dy;
-    } else {
-        dudy = (grid.u[i][j + 1] - u_here) / dy;
-    }
+    // ∂u/∂y: 風上差分
+    const double dudy = (v_here >= 0)
+        ? (u_here - grid.u[i][j - 1]) / dy
+        : (grid.u[i][j + 1] - u_here) / dy;
 
     return u_here * dudx + v_here * dudy;
 }
 
 double Solver::convectionV(const Grid& grid, int i, int j) const {
     // v速度の移流項: (u・∇)v at v[i][j]
-    double dx = grid.dx;
-    double dy = grid.dy;
+    // 1次精度風上差分スキーム
+    const double dx = grid.dx;
+    const double dy = grid.dy;
+    const double v_here = grid.v[i][j];
 
-    double v_here = grid.v[i][j];
+    // u速度をv点に補間（4点平均）
+    const double u_here = constants::FOUR_POINT_AVERAGE_COEFF
+        * (grid.u[i - 1][j] + grid.u[i][j] + grid.u[i - 1][j + 1] + grid.u[i][j + 1]);
 
-    // u速度をv点に補間
-    double u_here = 0.25 * (grid.u[i - 1][j] + grid.u[i][j] +
-                           grid.u[i - 1][j + 1] + grid.u[i][j + 1]);
+    // ∂v/∂x: 風上差分
+    const double dvdx = (u_here >= 0)
+        ? (v_here - grid.v[i - 1][j]) / dx
+        : (grid.v[i + 1][j] - v_here) / dx;
 
-    double dvdx;
-    if (u_here >= 0) {
-        dvdx = (v_here - grid.v[i - 1][j]) / dx;
-    } else {
-        dvdx = (grid.v[i + 1][j] - v_here) / dx;
-    }
-
-    double dvdy;
-    if (v_here >= 0) {
-        dvdy = (v_here - grid.v[i][j - 1]) / dy;
-    } else {
-        dvdy = (grid.v[i][j + 1] - v_here) / dy;
-    }
+    // ∂v/∂y: 風上差分
+    const double dvdy = (v_here >= 0)
+        ? (v_here - grid.v[i][j - 1]) / dy
+        : (grid.v[i][j + 1] - v_here) / dy;
 
     return u_here * dvdx + v_here * dvdy;
 }
 
 double Solver::diffusionU(const Grid& grid, int i, int j) const {
-    double dx2 = grid.dx * grid.dx;
-    double dy2 = grid.dy * grid.dy;
+    // 2次精度中心差分によるラプラシアン: ∇²u
+    const double dx2 = grid.dx * grid.dx;
+    const double dy2 = grid.dy * grid.dy;
+    constexpr double c = constants::LAPLACIAN_CENTER_COEFF;
 
-    return (grid.u[i + 1][j] - 2.0 * grid.u[i][j] + grid.u[i - 1][j]) / dx2 +
-           (grid.u[i][j + 1] - 2.0 * grid.u[i][j] + grid.u[i][j - 1]) / dy2;
+    return (grid.u[i + 1][j] - c * grid.u[i][j] + grid.u[i - 1][j]) / dx2 +
+           (grid.u[i][j + 1] - c * grid.u[i][j] + grid.u[i][j - 1]) / dy2;
 }
 
 double Solver::diffusionV(const Grid& grid, int i, int j) const {
-    double dx2 = grid.dx * grid.dx;
-    double dy2 = grid.dy * grid.dy;
+    // 2次精度中心差分によるラプラシアン: ∇²v
+    const double dx2 = grid.dx * grid.dx;
+    const double dy2 = grid.dy * grid.dy;
+    constexpr double c = constants::LAPLACIAN_CENTER_COEFF;
 
-    return (grid.v[i + 1][j] - 2.0 * grid.v[i][j] + grid.v[i - 1][j]) / dx2 +
-           (grid.v[i][j + 1] - 2.0 * grid.v[i][j] + grid.v[i][j - 1]) / dy2;
+    return (grid.v[i + 1][j] - c * grid.v[i][j] + grid.v[i - 1][j]) / dx2 +
+           (grid.v[i][j + 1] - c * grid.v[i][j] + grid.v[i][j - 1]) / dy2;
 }
 
-void Solver::computeIntermediateVelocity(Grid& grid, const BoundaryCondition& bc) {
+void Solver::computeIntermediateVelocity(Grid& grid, const BoundaryCondition& /*bc*/) {
     int nx = grid.nx;
     int ny = grid.ny;
 

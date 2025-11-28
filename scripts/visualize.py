@@ -198,7 +198,7 @@ def plot_pressure_field(field: dict, ax=None, title=None, length_unit='mm'):
 
 
 def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_unit='mm/s'):
-    """流線をプロット（手動積分による正確な流線）"""
+    """流線をプロット（流れの種類に応じて最適な方法を選択）"""
     from scipy.interpolate import RegularGridInterpolator
     from scipy.integrate import solve_ivp
 
@@ -231,43 +231,87 @@ def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_uni
     cbar = plt.colorbar(cf, ax=ax)
     setup_colorbar_style(cbar, label=f'Velocity ({vel_unit})')
 
-    # 速度場の補間関数を作成
-    u_interp = RegularGridInterpolator((x_1d, y_1d), u, bounds_error=False, fill_value=0)
-    v_interp = RegularGridInterpolator((x_1d, y_1d), v, bounds_error=False, fill_value=0)
+    # アスペクト比で流れの種類を判定
+    x_range = x_1d[-1] - x_1d[0]
+    y_range = y_1d[-1] - y_1d[0]
+    is_channel_flow = (x_range / y_range) > 2  # アスペクト比が2以上ならチャネルフロー
 
-    def velocity(t, pos):
-        x, y = pos
-        return [u_interp([x, y])[0], v_interp([x, y])[0]]
+    if is_channel_flow:
+        # チャネルフロー: 左端から右へ流れる流線を積分で計算
+        u_interp = RegularGridInterpolator((x_1d, y_1d), u, bounds_error=False, fill_value=None)
+        v_interp = RegularGridInterpolator((x_1d, y_1d), v, bounds_error=False, fill_value=None)
 
-    # 流線の開始点（y方向に均等配置）
-    n_streams = 12
-    y_margin = (y_1d[-1] - y_1d[0]) * 0.05
-    y_starts = np.linspace(y_1d[0] + y_margin, y_1d[-1] - y_margin, n_streams)
-    x_start = x_1d[0] + (x_1d[-1] - x_1d[0]) * 0.02  # 入口付近から開始
+        def velocity(t, pos):
+            x, y = pos
+            ux = u_interp([x, y])[0]
+            vy = v_interp([x, y])[0]
+            if np.isnan(ux) or np.isnan(vy):
+                return [0.0, 0.0]
+            return [ux, vy]
 
-    # 流線を積分で計算
-    # 積分時間をチャネル長と最小流速から推定（壁付近の遅い流れにも対応）
-    x_length = x_1d[-1] - x_1d[0]
-    # 壁付近の流線も右端まで到達するよう、最小速度を基準にする
-    min_u = max(np.percentile(np.abs(u), 10), 1e-6)  # 下位10%の速度
-    t_max = (x_length / min_u) * 1.2  # 余裕を持って1.2倍
-    t_span = [0, t_max]
-    # 細かいサンプリングで滑らかな線を描画
-    n_points = 2000
-    t_eval = np.linspace(0, t_max, n_points)
+        n_streams = 15
+        y_margin = y_range * 0.03
+        y_starts = np.linspace(y_1d[0] + y_margin, y_1d[-1] - y_margin, n_streams)
+        x_start = x_1d[0]
 
-    for y0 in y_starts:
-        try:
-            # eventsなしで積分し、後でマスク
-            sol = solve_ivp(velocity, t_span, [x_start, y0], t_eval=t_eval,
-                           method='RK45', dense_output=True)
-            # 領域内の点のみプロット
-            mask = ((sol.y[0] >= x_1d[0]) & (sol.y[0] <= x_1d[-1]) &
-                    (sol.y[1] >= y_1d[0]) & (sol.y[1] <= y_1d[-1]))
-            if np.sum(mask) > 1:
-                ax.plot(sol.y[0][mask], sol.y[1][mask], 'k-', linewidth=0.5, alpha=0.7)
-        except Exception:
-            pass
+        mean_u = max(np.mean(np.abs(u)), 1e-6)
+        t_max = (x_range / mean_u) * 5.0
+        t_span = [0, t_max]
+        n_points = 5000
+        t_eval = np.linspace(0, t_max, n_points)
+
+        x_min_bound, x_max_bound = x_1d[0], x_1d[-1]
+        y_min_bound, y_max_bound = y_1d[0], y_1d[-1]
+
+        for y0 in y_starts:
+            try:
+                def out_of_bounds(t, pos):
+                    x, y = pos
+                    if x < x_min_bound or x > x_max_bound:
+                        return -1
+                    if y < y_min_bound or y > y_max_bound:
+                        return -1
+                    return 1
+                out_of_bounds.terminal = True
+                out_of_bounds.direction = -1
+
+                sol = solve_ivp(velocity, t_span, [x_start, y0], t_eval=t_eval,
+                               method='RK45', dense_output=True, events=out_of_bounds,
+                               max_step=x_range/100)
+
+                if len(sol.y[0]) > 1:
+                    mask = ((sol.y[0] >= x_min_bound) & (sol.y[0] <= x_max_bound) &
+                            (sol.y[1] >= y_min_bound) & (sol.y[1] <= y_max_bound))
+                    if np.sum(mask) > 1:
+                        x_line = sol.y[0][mask]
+                        y_line = sol.y[1][mask]
+                        if x_line[0] > x_min_bound:
+                            x_line = np.insert(x_line, 0, x_min_bound)
+                            y_line = np.insert(y_line, 0, y_line[0])
+                        ax.plot(x_line, y_line, 'k-', linewidth=0.3, alpha=1.0)
+            except Exception:
+                pass
+    else:
+        # キャビティフロー等: matplotlibのstreamplotを使用
+        # 速度場をより細かい格子に補間して滑らかな流線を描画
+        n_fine = 100
+        x_fine = np.linspace(x_1d[0], x_1d[-1], n_fine)
+        y_fine = np.linspace(y_1d[0], y_1d[-1], n_fine)
+        X_fine, Y_fine = np.meshgrid(x_fine, y_fine)
+
+        u_interp = RegularGridInterpolator((x_1d, y_1d), u, bounds_error=False, fill_value=0)
+        v_interp = RegularGridInterpolator((x_1d, y_1d), v, bounds_error=False, fill_value=0)
+
+        U_fine = np.zeros((n_fine, n_fine))
+        V_fine = np.zeros((n_fine, n_fine))
+        for i in range(n_fine):
+            for j in range(n_fine):
+                U_fine[j, i] = u_interp([x_fine[i], y_fine[j]])[0]
+                V_fine[j, i] = v_interp([x_fine[i], y_fine[j]])[0]
+
+        # 流線を描画（密度を高めに、極細の黒線）
+        ax.streamplot(X_fine, Y_fine, U_fine, V_fine,
+                      color='black', linewidth=0.3, density=2.0, arrowsize=0.5)
 
     # スタイル設定
     title_text = title if title else f'Streamlines at t = {field["time"]:.4f} s'

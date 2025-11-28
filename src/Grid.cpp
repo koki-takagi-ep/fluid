@@ -1,11 +1,22 @@
 #include "Grid.hpp"
 #include <algorithm>
+#include <stdexcept>
 
 namespace fluid {
 
 Grid::Grid(int nx, int ny, double lx, double ly)
     : nx(nx), ny(ny), lx(lx), ly(ly)
 {
+    // パラメータの検証
+    if (nx <= 0 || ny <= 0) {
+        throw std::invalid_argument("Grid dimensions must be positive (nx="
+            + std::to_string(nx) + ", ny=" + std::to_string(ny) + ")");
+    }
+    if (lx <= 0.0 || ly <= 0.0) {
+        throw std::invalid_argument("Domain sizes must be positive (lx="
+            + std::to_string(lx) + ", ly=" + std::to_string(ly) + ")");
+    }
+
     dx = lx / nx;
     dy = ly / ny;
 

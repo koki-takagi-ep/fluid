@@ -20,6 +20,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 add_library(fluid_solver
     src/Grid.cpp
     src/Solver.cpp
+    src/SimpleSolver.cpp
     src/PressureSolver.cpp
     src/BoundaryCondition.cpp
     src/CSVWriter.cpp
@@ -36,6 +37,9 @@ target_link_libraries(cavity_flow fluid_solver)
 
 add_executable(channel_flow examples/channel_flow.cpp)
 target_link_libraries(channel_flow fluid_solver)
+
+add_executable(channel_flow_simple examples/channel_flow_simple.cpp)
+target_link_libraries(channel_flow_simple fluid_solver)
 
 # インストール
 install(TARGETS fluid_solver LIBRARY DESTINATION lib)

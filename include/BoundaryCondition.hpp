@@ -109,6 +109,16 @@ public:
      */
     void applyPressureBC(Grid& grid) const;
 
+    /**
+     * @brief 任意の圧力場に境界条件を適用（SIMPLE法用）
+     *
+     * 圧力補正場p'に対してNeumann条件を適用。
+     *
+     * @param grid 格子（サイズ情報のみ使用）
+     * @param p_field 圧力場（境界条件が適用される）
+     */
+    void applyPressureBC(const Grid& grid, std::vector<std::vector<double>>& p_field) const;
+
     //==========================================================================
     // ファクトリメソッド（典型的な境界条件設定）
     //==========================================================================

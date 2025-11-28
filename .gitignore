@@ -11,3 +11,6 @@ build/
 # Python
 __pycache__/
 *.pyc
+
+# Reference PDFs (large files, download manually)
+reference/journal-publication/*.pdf
