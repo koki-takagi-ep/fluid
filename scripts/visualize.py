@@ -61,10 +61,58 @@ def setup_channel_flow_axes(ax, x_max, y_max):
     ax.yaxis.set_minor_locator(plt.NullLocator())  # マイナーティックなし
 
 
-def setup_colorbar_style(cbar, label=''):
+def format_colorbar_ticks(cbar, n_ticks=5):
+    """カラーバーのティックをキリの良い数字にフォーマット（有効数字2桁）"""
+    import matplotlib.ticker as ticker
+
+    vmin, vmax = cbar.vmin, cbar.vmax
+
+    # 適切な間隔を計算（キリの良い数字に）
+    range_val = vmax - vmin
+    if range_val == 0:
+        return
+
+    # 桁数を計算
+    order = np.floor(np.log10(range_val))
+    step_base = 10 ** order
+
+    # キリの良い間隔を選択（1, 2, 2.5, 5の倍数）
+    nice_steps = [1, 2, 2.5, 5, 10]
+    for step_mult in nice_steps:
+        step = step_base * step_mult / 10
+        n_steps = range_val / step
+        if n_steps <= n_ticks + 1:
+            break
+
+    # ティック位置を計算
+    tick_min = np.ceil(vmin / step) * step
+    tick_max = np.floor(vmax / step) * step
+    ticks = np.arange(tick_min, tick_max + step / 2, step)
+
+    # 有効数字2桁でフォーマット
+    cbar.set_ticks(ticks)
+
+    # フォーマット関数
+    def format_tick(x, pos):
+        if x == 0:
+            return '0'
+        abs_x = abs(x)
+        if abs_x >= 1000:
+            return f'{x:.2g}'
+        elif abs_x >= 1:
+            return f'{x:.3g}'
+        else:
+            return f'{x:.2g}'
+
+    cbar.ax.yaxis.set_major_formatter(ticker.FuncFormatter(format_tick))
+    cbar.ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_tick))
+
+
+def setup_colorbar_style(cbar, label='', horizontal=False):
     """カラーバーのスタイルを設定"""
     cbar.set_label(label, fontsize=10, fontweight='bold')
     cbar.ax.tick_params(direction='out', length=4, width=1, labelsize=9)
+    format_colorbar_ticks(cbar)
 
 
 def get_data_dir(output_dir: str) -> str:
@@ -126,7 +174,7 @@ def get_field_files(output_dir: str) -> list:
 
 
 def plot_velocity_field(field: dict, ax=None, title=None, show_streamlines=True,
-                        length_unit='mm', vel_unit='mm/s'):
+                        length_unit='mm', vel_unit='mm/s', horizontal_cbar=False):
     """速度場をプロット"""
     if ax is None:
         fig, ax = plt.subplots(figsize=(5, 4.5))
@@ -152,8 +200,13 @@ def plot_velocity_field(field: dict, ax=None, title=None, show_streamlines=True,
 
     # 速度の大きさをカラーマップで表示
     cf = ax.contourf(x, y, mag, levels=50, cmap='viridis')
-    cbar = plt.colorbar(cf, ax=ax)
-    setup_colorbar_style(cbar, label=f'Velocity ({vel_unit})')
+
+    # カラーバー（横向き対応）
+    if horizontal_cbar:
+        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.15, aspect=30)
+    else:
+        cbar = plt.colorbar(cf, ax=ax)
+    setup_colorbar_style(cbar, label=f'Velocity $|\\vec{{u}}|$ ({vel_unit})')
 
     # ベクトル場（細かく配置、小さい黒矢印）
     skip_x = max(1, x.shape[0] // 32)  # x方向: 32本程度
@@ -171,7 +224,7 @@ def plot_velocity_field(field: dict, ax=None, title=None, show_streamlines=True,
     return ax
 
 
-def plot_pressure_field(field: dict, ax=None, title=None, length_unit='mm'):
+def plot_pressure_field(field: dict, ax=None, title=None, length_unit='mm', horizontal_cbar=False):
     """圧力場をプロット"""
     if ax is None:
         fig, ax = plt.subplots(figsize=(5, 4.5))
@@ -186,8 +239,13 @@ def plot_pressure_field(field: dict, ax=None, title=None, length_unit='mm'):
     p = field['p']
 
     cf = ax.contourf(x, y, p, levels=50, cmap='RdBu_r')
-    cbar = plt.colorbar(cf, ax=ax)
-    setup_colorbar_style(cbar, label='Pressure (Pa)')
+
+    # カラーバー（横向き対応）
+    if horizontal_cbar:
+        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.15, aspect=30)
+    else:
+        cbar = plt.colorbar(cf, ax=ax)
+    setup_colorbar_style(cbar, label='Pressure $p$ (Pa)')
 
     # スタイル設定
     title_text = title if title else f'Pressure at t = {field["time"]:.4f} s'
@@ -197,7 +255,7 @@ def plot_pressure_field(field: dict, ax=None, title=None, length_unit='mm'):
     return ax
 
 
-def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_unit='mm/s'):
+def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_unit='mm/s', horizontal_cbar=False):
     """流線をプロット（流れの種類に応じて最適な方法を選択）"""
     from scipy.interpolate import RegularGridInterpolator
     from scipy.integrate import solve_ivp
@@ -228,8 +286,13 @@ def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_uni
     # 背景に速度の大きさをプロット
     X, Y = np.meshgrid(x_1d, y_1d)
     cf = ax.contourf(X, Y, mag.T, levels=50, cmap='viridis')
-    cbar = plt.colorbar(cf, ax=ax)
-    setup_colorbar_style(cbar, label=f'Velocity ({vel_unit})')
+
+    # カラーバー（横向き対応）
+    if horizontal_cbar:
+        cbar = plt.colorbar(cf, ax=ax, orientation='horizontal', pad=0.15, aspect=30)
+    else:
+        cbar = plt.colorbar(cf, ax=ax)
+    setup_colorbar_style(cbar, label=f'Velocity $|\\vec{{u}}|$ ({vel_unit})')
 
     # アスペクト比で流れの種類を判定
     x_range = x_1d[-1] - x_1d[0]
@@ -474,24 +537,31 @@ def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 300):
     x_max_mm = field['x'].max() * L_scale
     y_max_mm = field['y'].max() * L_scale
 
-    fig, axes = plt.subplots(2, 2, figsize=(10, 9))
+    # チャネルフローの場合は横長レイアウト
+    if is_channel_flow:
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    else:
+        fig, axes = plt.subplots(2, 2, figsize=(10, 9))
 
     # 速度場（ベクトル＋カラー）
     ax = axes[0, 0]
     plot_velocity_field(field, ax=ax, show_streamlines=False,
-                        title='Velocity Field')
+                        title=r'Velocity Field $|\vec{u}|$',
+                        horizontal_cbar=is_channel_flow)
     if is_channel_flow:
         setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
 
     # 流線
     ax = axes[0, 1]
-    plot_streamlines(field, ax=ax, title='Streamlines')
+    plot_streamlines(field, ax=ax, title=r'Streamlines $|\vec{u}|$',
+                     horizontal_cbar=is_channel_flow)
     if is_channel_flow:
         setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
 
     # 圧力場
     ax = axes[1, 0]
-    plot_pressure_field(field, ax=ax, title='Pressure Field')
+    plot_pressure_field(field, ax=ax, title=r'Pressure Field $p$',
+                        horizontal_cbar=is_channel_flow)
     if is_channel_flow:
         setup_channel_flow_axes(ax, x_max_mm, y_max_mm)
 
@@ -501,8 +571,23 @@ def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 300):
 
     plt.tight_layout()
 
-    plt.savefig(save_file, bbox_inches='tight', dpi=dpi)
-    print(f"Figure saved to {save_file} (dpi={dpi})")
+    # SVG, PDF, PNG の3形式で保存
+    base_path = os.path.splitext(save_file)[0]
+
+    # SVG
+    svg_file = base_path + '.svg'
+    plt.savefig(svg_file, bbox_inches='tight')
+    print(f"Figure saved to {svg_file}")
+
+    # PDF
+    pdf_file = base_path + '.pdf'
+    plt.savefig(pdf_file, bbox_inches='tight')
+    print(f"Figure saved to {pdf_file}")
+
+    # PNG
+    png_file = base_path + '.png'
+    plt.savefig(png_file, bbox_inches='tight', dpi=dpi)
+    print(f"Figure saved to {png_file} (dpi={dpi})")
 
 
 def main():
