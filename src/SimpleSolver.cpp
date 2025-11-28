@@ -182,7 +182,17 @@ int SimpleSolver::solvePressureCorrection(Grid& grid, const BoundaryCondition& b
         p_prime.resize(nx + 2, std::vector<double>(ny + 2, 0.0));
     }
 
-    // 初期値として現在の圧力場をコピー
+    // RHS（右辺）を事前計算
+    std::vector<std::vector<double>> rhs_array(nx + 2, std::vector<double>(ny + 2, 0.0));
+    for (int i = 1; i <= nx; ++i) {
+        for (int j = 1; j <= ny; ++j) {
+            double dudx = (grid.u_star[i][j] - grid.u_star[i - 1][j]) / dx;
+            double dvdy = (grid.v_star[i][j] - grid.v_star[i][j - 1]) / dy;
+            rhs_array[i][j] = rho * (dudx + dvdy) / dt;
+        }
+    }
+
+    // 初期値として現在の圧力場をコピー（前回の解を初期推定値として使用）
     for (int i = 0; i < nx + 2; ++i) {
         for (int j = 0; j < ny + 2; ++j) {
             p_prime[i][j] = grid.p[i][j];
@@ -192,37 +202,27 @@ int SimpleSolver::solvePressureCorrection(Grid& grid, const BoundaryCondition& b
     // SOR反復で圧力Poisson方程式を解く
     // ∇²p = (ρ/Δt) * ∇・u*
     for (int iter = 0; iter < maxPressureIter; ++iter) {
-        double maxResidual = 0.0;
-
         // Red-Black SOR
         for (int color = 0; color < 2; ++color) {
             #ifdef USE_OPENMP
-            #pragma omp parallel for reduction(max:maxResidual)
+            #pragma omp parallel for collapse(2)
             #endif
             for (int i = 1; i <= nx; ++i) {
                 for (int j = 1; j <= ny; ++j) {
                     if ((i + j) % 2 != color) continue;
 
-                    // 右辺: ∇・u*
-                    double dudx = (grid.u_star[i][j] - grid.u_star[i - 1][j]) / dx;
-                    double dvdy = (grid.v_star[i][j] - grid.v_star[i][j - 1]) / dy;
-                    double rhs = rho * (dudx + dvdy) / dt;
-
                     double p_new = (
                         (p_prime[i + 1][j] + p_prime[i - 1][j]) / dx2 +
                         (p_prime[i][j + 1] + p_prime[i][j - 1]) / dy2 -
-                        rhs
+                        rhs_array[i][j]
                     ) / factor;
-
-                    double residual = std::abs(p_new - p_prime[i][j]);
-                    maxResidual = std::max(maxResidual, residual);
 
                     p_prime[i][j] = p_prime[i][j] + omega * (p_new - p_prime[i][j]);
                 }
             }
         }
 
-        // 境界条件を適用（元のapplyPressureBCと同様）
+        // 境界条件を適用
         // 左境界: Neumann
         for (int j = 1; j <= ny; ++j) {
             p_prime[0][j] = p_prime[1][j];
@@ -251,7 +251,19 @@ int SimpleSolver::solvePressureCorrection(Grid& grid, const BoundaryCondition& b
         p_prime[0][ny + 1] = 0.5 * (p_prime[1][ny + 1] + p_prime[0][ny]);
         p_prime[nx + 1][ny + 1] = 0.5 * (p_prime[nx][ny + 1] + p_prime[nx + 1][ny]);
 
-        if (maxResidual < pressureTol) {
+        // Poisson方程式の残差で収束判定（Projection法と同様）
+        double maxResidual = 0.0;
+        for (int i = 1; i <= nx; ++i) {
+            for (int j = 1; j <= ny; ++j) {
+                double laplacian_p = (p_prime[i + 1][j] - 2.0 * p_prime[i][j] + p_prime[i - 1][j]) / dx2
+                                   + (p_prime[i][j + 1] - 2.0 * p_prime[i][j] + p_prime[i][j - 1]) / dy2;
+                double residual = std::abs(laplacian_p - rhs_array[i][j]);
+                maxResidual = std::max(maxResidual, residual);
+            }
+        }
+
+        // 収束判定: tolerance * rho / dt（Projection法と同じ基準）
+        if (maxResidual < pressureTol * rho / dt) {
             return iter + 1;
         }
     }

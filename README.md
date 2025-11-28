@@ -206,9 +206,9 @@ python ../scripts/convergence.py output/channel_projection
 
 ![Cavity Flow Result](docs/images/cavity_projection_result.png)
 
-**左上**: 速度場（ベクトル＋カラーマップ） | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+▶︎ **左上**: 速度場（ベクトル＋カラーマップ） | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
 
-主渦が右上に形成され、左下に二次渦が発生している様子が確認できる。
+▶︎ 主渦が右上に形成され、左下に二次渦が発生している様子が確認できる。
 
 ### チャネル流れ（Poiseuille flow, Re = 30）
 
@@ -218,11 +218,15 @@ python ../scripts/convergence.py output/channel_projection
 
 ![Channel Flow - Projection](docs/images/channel_projection_result.png)
 
+▶︎ **左上**: 速度場 | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+
 #### SIMPLE法による結果
 
 ![Channel Flow - SIMPLE](docs/images/channel_simple_result.png)
 
-両手法とも、発達した流れでは放物線状の速度分布（Poiseuille流れの理論解）に近づいていることが確認できる。
+▶︎ **左上**: 速度場 | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+
+▶︎ 両手法とも、発達した流れでは放物線状の速度分布（Poiseuille流れの理論解）に近づいていることが確認できる。
 
 ### ベンチマーク検証
 
@@ -230,7 +234,7 @@ Ghia, Ghia & Shin (1982) のベンチマークデータとの比較により、�
 
 ![Validation Re=100](docs/images/cavity_validation_Re100.png)
 
-垂直・水平中心線上の速度分布が参照データと良好に一致していることが確認できる。
+▶︎ 垂直・水平中心線上の速度分布が参照データと良好に一致していることが確認できる。
 
 ## 検証
 

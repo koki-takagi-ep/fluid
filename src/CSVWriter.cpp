@@ -130,4 +130,58 @@ void CSVWriter::writeMetadata(const Grid& grid) const {
     ofs << "dy," << grid.dy << "\n";
 }
 
+void CSVWriter::writeSimulationLog(const std::string& solverType,
+                                    const Grid& grid,
+                                    double rho, double nu,
+                                    double endTime, int totalSteps,
+                                    double wallTime, double Re) const {
+    const std::string filename = outputDir + "/simulation.log";
+    std::ofstream ofs(filename);
+
+    if (!ofs.is_open()) {
+        throw std::runtime_error("Failed to open file: " + filename);
+    }
+
+    // 現在時刻を取得
+    auto now = std::chrono::system_clock::now();
+    auto time_t_now = std::chrono::system_clock::to_time_t(now);
+
+    ofs << "========================================\n";
+    ofs << "  Simulation Log\n";
+    ofs << "========================================\n";
+    ofs << "Date: " << std::ctime(&time_t_now);
+    ofs << "\n";
+
+    ofs << "[Solver]\n";
+    ofs << "  Type: " << solverType << "\n";
+    ofs << "  Scheme: 1st-order upwind (convection), 2nd-order central (diffusion)\n";
+    ofs << "  Pressure solver: SOR (omega=1.8, tol=1e-6)\n";
+    ofs << "\n";
+
+    ofs << "[Grid]\n";
+    ofs << "  Resolution: " << grid.nx << " x " << grid.ny << "\n";
+    ofs << "  Domain size: " << grid.lx * 1000 << " mm x " << grid.ly * 1000 << " mm\n";
+    ofs << "  Cell size: dx=" << grid.dx * 1000 << " mm, dy=" << grid.dy * 1000 << " mm\n";
+    ofs << "\n";
+
+    ofs << "[Physical Parameters]\n";
+    ofs << "  Density (rho): " << rho << " kg/m^3\n";
+    ofs << "  Kinematic viscosity (nu): " << nu << " m^2/s\n";
+    ofs << "  Reynolds number: " << Re << "\n";
+    ofs << "\n";
+
+    ofs << "[Simulation]\n";
+    ofs << "  End time: " << endTime << " s\n";
+    ofs << "  Total steps: " << totalSteps << "\n";
+    ofs << "\n";
+
+    ofs << "[Performance]\n";
+    ofs << "  Wall time: " << std::fixed << std::setprecision(2) << wallTime << " s\n";
+    if (totalSteps > 0) {
+        ofs << "  Time per step: " << std::fixed << std::setprecision(4)
+            << wallTime / totalSteps * 1000 << " ms\n";
+    }
+    ofs << "========================================\n";
+}
+
 } // namespace fluid

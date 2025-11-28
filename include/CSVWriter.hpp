@@ -3,6 +3,7 @@
 #include "Grid.hpp"
 #include <string>
 #include <fstream>
+#include <chrono>
 
 namespace fluid {
 
@@ -14,7 +15,8 @@ namespace fluid {
  *   ├── data/           # CSVファイル
  *   │   ├── metadata.csv
  *   │   └── field_XXXXXX.csv
- *   └── figures/        # 可視化結果（Pythonスクリプトが出力）
+ *   ├── figures/        # 可視化結果（Pythonスクリプトが出力）
+ *   └── simulation.log  # 計算ログ
  */
 class CSVWriter {
 public:
@@ -60,6 +62,23 @@ public:
      * メタデータ（格子情報）を出力
      */
     void writeMetadata(const Grid& grid) const;
+
+    /**
+     * シミュレーションログを出力
+     * @param solverType ソルバーの種類 ("Projection", "SIMPLE")
+     * @param grid 格子情報
+     * @param rho 密度 [kg/m³]
+     * @param nu 動粘性係数 [m²/s]
+     * @param endTime シミュレーション終了時刻 [s]
+     * @param totalSteps 総ステップ数
+     * @param wallTime 実行時間 [s]
+     * @param Re レイノルズ数
+     */
+    void writeSimulationLog(const std::string& solverType,
+                            const Grid& grid,
+                            double rho, double nu,
+                            double endTime, int totalSteps,
+                            double wallTime, double Re) const;
 
 private:
     std::string getFilename(const std::string& prefix, int step) const;

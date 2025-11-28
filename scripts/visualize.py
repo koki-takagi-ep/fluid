@@ -448,7 +448,7 @@ def create_animation(output_dir: str, output_file: str = None, fps: int = 10,
     plt.close()
 
 
-def plot_final_state(output_dir: str, save_file: str = None):
+def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 300):
     """最終状態を4パネルで表示"""
     metadata = load_metadata(output_dir)
     nx, ny = int(metadata['nx']), int(metadata['ny'])
@@ -458,9 +458,9 @@ def plot_final_state(output_dir: str, save_file: str = None):
         print("No field files found!")
         return
 
-    # デフォルトの出力先はfiguresディレクトリ（PDF形式）
+    # デフォルトの出力先はfiguresディレクトリ（PNG形式、高解像度）
     if save_file is None:
-        save_file = os.path.join(get_figures_dir(output_dir), 'result.pdf')
+        save_file = os.path.join(get_figures_dir(output_dir), 'result.png')
 
     field = load_field(files[-1], nx, ny)
 
@@ -501,8 +501,8 @@ def plot_final_state(output_dir: str, save_file: str = None):
 
     plt.tight_layout()
 
-    plt.savefig(save_file, bbox_inches='tight')
-    print(f"Figure saved to {save_file}")
+    plt.savefig(save_file, bbox_inches='tight', dpi=dpi)
+    print(f"Figure saved to {save_file} (dpi={dpi})")
 
 
 def main():
@@ -513,6 +513,7 @@ def main():
     parser.add_argument('--streamlines', action='store_true', help='Plot streamlines only')
     parser.add_argument('--save', type=str, default=None, help='Save figure to file')
     parser.add_argument('--fps', type=int, default=10, help='Animation FPS')
+    parser.add_argument('--dpi', type=int, default=300, help='Output DPI for PNG images (default: 300)')
 
     args = parser.parse_args()
 
@@ -530,12 +531,12 @@ def main():
             field = load_field(files[-1], nx, ny)
             fig, ax = plt.subplots(figsize=(10, 8))
             plot_streamlines(field, ax=ax)
-            save_file = args.save if args.save else os.path.join(get_figures_dir(args.output_dir), 'streamlines.pdf')
-            plt.savefig(save_file, bbox_inches='tight')
-            print(f"Figure saved to {save_file}")
+            save_file = args.save if args.save else os.path.join(get_figures_dir(args.output_dir), 'streamlines.png')
+            plt.savefig(save_file, bbox_inches='tight', dpi=args.dpi)
+            print(f"Figure saved to {save_file} (dpi={args.dpi})")
     else:
         # デフォルトは最終状態の4パネル表示
-        plot_final_state(args.output_dir, args.save)
+        plot_final_state(args.output_dir, args.save, dpi=args.dpi)
 
 
 if __name__ == '__main__':

@@ -13,6 +13,7 @@
 #include "CSVWriter.hpp"
 #include <iostream>
 #include <cstdlib>
+#include <chrono>
 
 int main(int argc, char* argv[]) {
     // 物理パラメータ（SI単位系）
@@ -73,13 +74,25 @@ int main(int argc, char* argv[]) {
         outputCount++;
     };
 
+    // 計算時間の計測開始
+    auto startTime = std::chrono::high_resolution_clock::now();
+
     // シミュレーション実行
     solver.run(grid, bc, endTime, 100, outputCallback);
+
+    // 計算時間の計測終了
+    auto endTimePoint = std::chrono::high_resolution_clock::now();
+    double wallTime = std::chrono::duration<double>(endTimePoint - startTime).count();
 
     std::cout << "\nSimulation completed!" << std::endl;
     std::cout << "Total steps: " << solver.getStepCount() << std::endl;
     std::cout << "Final time: " << solver.getTime() << " s" << std::endl;
     std::cout << "Output files: " << outputCount << std::endl;
+    std::cout << "Wall time: " << wallTime << " s" << std::endl;
+
+    // シミュレーションログを出力
+    writer.writeSimulationLog("Projection", grid, rho, nu, endTime,
+                              solver.getStepCount(), wallTime, Re);
 
     return 0;
 }
