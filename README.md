@@ -204,7 +204,7 @@ python ../scripts/convergence.py output/channel_projection
 
 上壁が一定速度で移動する正方形キャビティ内の流れのシミュレーション結果（Projection法）：
 
-![Cavity Flow Result](docs/images/cavity_projection_result.png)
+![Cavity Flow Result](docs/images/cavity_projection_result.svg)
 
 ▶︎ **左上**: 速度場（ベクトル＋カラーマップ） | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
 
@@ -216,13 +216,13 @@ python ../scripts/convergence.py output/channel_projection
 
 #### Projection法による結果
 
-![Channel Flow - Projection](docs/images/channel_projection_result.png)
+![Channel Flow - Projection](docs/images/channel_projection_result.svg)
 
 ▶︎ **左上**: 速度場 | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
 
 #### SIMPLE法による結果
 
-![Channel Flow - SIMPLE](docs/images/channel_simple_result.png)
+![Channel Flow - SIMPLE](docs/images/channel_simple_result.svg)
 
 ▶︎ **左上**: 速度場 | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
 

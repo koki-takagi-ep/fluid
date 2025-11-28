@@ -458,9 +458,9 @@ def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 300):
         print("No field files found!")
         return
 
-    # デフォルトの出力先はfiguresディレクトリ（PNG形式、高解像度）
+    # デフォルトの出力先はfiguresディレクトリ（SVG形式）
     if save_file is None:
-        save_file = os.path.join(get_figures_dir(output_dir), 'result.png')
+        save_file = os.path.join(get_figures_dir(output_dir), 'result.svg')
 
     field = load_field(files[-1], nx, ny)
 
@@ -531,9 +531,9 @@ def main():
             field = load_field(files[-1], nx, ny)
             fig, ax = plt.subplots(figsize=(10, 8))
             plot_streamlines(field, ax=ax)
-            save_file = args.save if args.save else os.path.join(get_figures_dir(args.output_dir), 'streamlines.png')
-            plt.savefig(save_file, bbox_inches='tight', dpi=args.dpi)
-            print(f"Figure saved to {save_file} (dpi={args.dpi})")
+            save_file = args.save if args.save else os.path.join(get_figures_dir(args.output_dir), 'streamlines.svg')
+            plt.savefig(save_file, bbox_inches='tight')
+            print(f"Figure saved to {save_file}")
     else:
         # デフォルトは最終状態の4パネル表示
         plot_final_state(args.output_dir, args.save, dpi=args.dpi)
