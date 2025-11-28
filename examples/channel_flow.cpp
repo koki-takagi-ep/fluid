@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
 
     // 出力コールバック
     int outputCount = 0;
-    auto outputCallback = [&](int step, double time, const fluid::Grid& g) {
+    auto outputCallback = [&](int /*step*/, double time, const fluid::Grid& g) {
         writer.writeAll(g, outputCount, time);
         outputCount++;
     };

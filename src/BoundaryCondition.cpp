@@ -191,6 +191,40 @@ void BoundaryCondition::applyPressureBC(Grid& grid) const {
     grid.p[nx + 1][ny + 1] = 0.5 * (grid.p[nx][ny + 1] + grid.p[nx + 1][ny]);
 }
 
+void BoundaryCondition::applyPressureBC(const Grid& grid, std::vector<std::vector<double>>& p_field) const {
+    int nx = grid.nx;
+    int ny = grid.ny;
+
+    // 圧力補正場p'に対する境界条件
+    // 全境界でNeumann条件（∂p'/∂n = 0）を適用
+
+    // 左境界
+    for (int j = 1; j <= ny; ++j) {
+        p_field[0][j] = p_field[1][j];
+    }
+
+    // 右境界
+    for (int j = 1; j <= ny; ++j) {
+        p_field[nx + 1][j] = p_field[nx][j];
+    }
+
+    // 下境界
+    for (int i = 1; i <= nx; ++i) {
+        p_field[i][0] = p_field[i][1];
+    }
+
+    // 上境界
+    for (int i = 1; i <= nx; ++i) {
+        p_field[i][ny + 1] = p_field[i][ny];
+    }
+
+    // 角
+    p_field[0][0] = 0.5 * (p_field[1][0] + p_field[0][1]);
+    p_field[nx + 1][0] = 0.5 * (p_field[nx][0] + p_field[nx + 1][1]);
+    p_field[0][ny + 1] = 0.5 * (p_field[1][ny + 1] + p_field[0][ny]);
+    p_field[nx + 1][ny + 1] = 0.5 * (p_field[nx][ny + 1] + p_field[nx + 1][ny]);
+}
+
 BoundaryCondition BoundaryCondition::cavityFlow(double lidVelocity) {
     BoundaryCondition bc;
     bc.left = BCType::NoSlip;
