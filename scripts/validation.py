@@ -166,7 +166,7 @@ def setup_axis_style(ax, xlabel='', ylabel='', title=''):
 
 
 def plot_validation(output_dir: str, Re: int, U_lid: float, save_file: str = None):
-    """検証プロットを作成"""
+    """検証プロットを作成（単一ケース）"""
 
     # デフォルトの出力先はfiguresディレクトリ
     if save_file is None:
@@ -194,7 +194,7 @@ def plot_validation(output_dir: str, Re: int, U_lid: float, save_file: str = Non
     ax.plot(profiles['u_vertical'], profiles['y_vertical'],
             'b-', linewidth=1.5, label='Present (CFD)')
     ax.plot(ghia_u['u'], ghia_u['y'],
-            'ro', markersize=6, markerfacecolor='none', markeredgewidth=1.5,
+            'ko', markersize=6, markerfacecolor='none', markeredgewidth=1.5,
             label='Ghia et al. (1982)')
 
     setup_axis_style(ax, xlabel=r'$u / U_{\rm lid}$', ylabel=r'$y / L$',
@@ -209,7 +209,7 @@ def plot_validation(output_dir: str, Re: int, U_lid: float, save_file: str = Non
     ax.plot(profiles['x_horizontal'], profiles['v_horizontal'],
             'b-', linewidth=1.5, label='Present (CFD)')
     ax.plot(ghia_v['x'], ghia_v['v'],
-            'ro', markersize=6, markerfacecolor='none', markeredgewidth=1.5,
+            'ko', markersize=6, markerfacecolor='none', markeredgewidth=1.5,
             label='Ghia et al. (1982)')
 
     setup_axis_style(ax, xlabel=r'$x / L$', ylabel=r'$v / U_{\rm lid}$',
@@ -230,6 +230,112 @@ def plot_validation(output_dir: str, Re: int, U_lid: float, save_file: str = Non
 
     # 誤差を計算
     compute_error(profiles, ghia_u, ghia_v, Re)
+
+
+def plot_multi_case_validation(output_dirs: list, labels: list, Re: int, U_lid: float,
+                                save_file: str = None):
+    """複数ケース（異なるセル数・スキーム）の検証プロットを作成
+
+    Ghiaデータ: 黒ドット（1回だけ表示）
+    数値解: 色付きライン（ケースごと）
+    """
+
+    if Re not in GHIA_DATA_U:
+        print(f"Warning: No Ghia data available for Re={Re}")
+        available = list(GHIA_DATA_U.keys())
+        print(f"Available Re: {available}")
+        return
+
+    # Ghiaのデータ
+    ghia_u = GHIA_DATA_U[Re]
+    ghia_v = GHIA_DATA_V[Re]
+
+    # カラーパレット（異なるケース用）
+    colors = plt.cm.tab10.colors
+    linestyles = ['-', '--', '-.', ':']
+
+    # プロット作成（正方形に近い2パネル）
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+
+    # 各ケースのデータを読み込みプロット
+    for idx, (output_dir, label) in enumerate(zip(output_dirs, labels)):
+        try:
+            data = load_simulation_data(output_dir)
+            profiles = extract_centerline_profiles(data, U_lid)
+
+            color = colors[idx % len(colors)]
+            ls = linestyles[idx % len(linestyles)]
+
+            # 左: 垂直中心線での u 速度
+            axes[0].plot(profiles['u_vertical'], profiles['y_vertical'],
+                        color=color, linestyle=ls, linewidth=1.5, label=label)
+
+            # 右: 水平中心線での v 速度
+            axes[1].plot(profiles['x_horizontal'], profiles['v_horizontal'],
+                        color=color, linestyle=ls, linewidth=1.5, label=label)
+
+            # 誤差計算
+            from scipy import interpolate
+            f_u = interpolate.interp1d(profiles['y_vertical'], profiles['u_vertical'],
+                                        kind='linear', fill_value='extrapolate')
+            u_interp = f_u(ghia_u['y'])
+            u_rms = np.sqrt(np.mean((u_interp - np.array(ghia_u['u']))**2))
+
+            f_v = interpolate.interp1d(profiles['x_horizontal'], profiles['v_horizontal'],
+                                        kind='linear', fill_value='extrapolate')
+            v_interp = f_v(ghia_v['x'])
+            v_rms = np.sqrt(np.mean((v_interp - np.array(ghia_v['v']))**2))
+
+            print(f"{label}: u_RMS = {u_rms:.5f}, v_RMS = {v_rms:.5f}")
+
+        except Exception as e:
+            print(f"Error loading {output_dir}: {e}")
+            continue
+
+    # Ghiaデータを黒ドットでプロット（最後に描画して前面に）
+    axes[0].plot(ghia_u['u'], ghia_u['y'],
+                'ko', markersize=7, markerfacecolor='none', markeredgewidth=1.5,
+                label='Ghia et al. (1982)', zorder=10)
+    axes[1].plot(ghia_v['x'], ghia_v['v'],
+                'ko', markersize=7, markerfacecolor='none', markeredgewidth=1.5,
+                label='Ghia et al. (1982)', zorder=10)
+
+    # 左パネルのスタイル
+    ax = axes[0]
+    setup_axis_style(ax, xlabel=r'$u / U_{\rm lid}$', ylabel=r'$y / L$',
+                     title=f'Vertical centerline ($x/L = 0.5$)')
+    ax.set_xlim(-0.5, 1.1)
+    ax.set_ylim(0, 1)
+    ax.legend(loc='lower right', fontsize=8, frameon=True, edgecolor='black', fancybox=False)
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_aspect('equal', adjustable='box')
+
+    # 右パネルのスタイル
+    ax = axes[1]
+    setup_axis_style(ax, xlabel=r'$x / L$', ylabel=r'$v / U_{\rm lid}$',
+                     title=f'Horizontal centerline ($y/L = 0.5$)')
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.6, 0.5)
+    ax.legend(loc='upper right', fontsize=8, frameon=True, edgecolor='black', fancybox=False)
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_aspect('equal', adjustable='box')
+
+    # 全体タイトル
+    fig.suptitle(f'Lid-Driven Cavity Flow Validation (Re = {Re})',
+                 fontsize=13, fontweight='bold', y=1.02)
+
+    plt.tight_layout()
+
+    # 保存（SVG, PDF, PNG）
+    if save_file is None:
+        save_file = f'validation_Re{Re}_comparison.svg'
+
+    base_path = os.path.splitext(save_file)[0]
+    for ext in ['.svg', '.pdf', '.png']:
+        out_file = base_path + ext
+        dpi = 600 if ext == '.png' else None
+        plt.savefig(out_file, bbox_inches='tight', dpi=dpi)
+        print(f"Figure saved to {out_file}")
 
 
 def compute_error(profiles: dict, ghia_u: dict, ghia_v: dict, Re: int):
@@ -340,11 +446,22 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Validate cavity flow simulation')
-    parser.add_argument('output_dir', help='Output directory containing CSV files')
+    parser.add_argument('output_dirs', nargs='+', help='Output directories containing CSV files')
+    parser.add_argument('--labels', nargs='+', default=None,
+                        help='Labels for each case (e.g., "32x32 Projection" "64x64 SIMPLE")')
     parser.add_argument('--Re', type=int, default=100, help='Reynolds number')
     parser.add_argument('--U_lid', type=float, default=0.01, help='Lid velocity [m/s]')
     parser.add_argument('--save', type=str, default=None, help='Save figure to file')
 
     args = parser.parse_args()
 
-    plot_validation(args.output_dir, args.Re, args.U_lid, args.save)
+    if len(args.output_dirs) == 1:
+        # 単一ケース
+        plot_validation(args.output_dirs[0], args.Re, args.U_lid, args.save)
+    else:
+        # 複数ケース比較
+        labels = args.labels if args.labels else [os.path.basename(d) for d in args.output_dirs]
+        if len(labels) != len(args.output_dirs):
+            print("Error: Number of labels must match number of output directories")
+            exit(1)
+        plot_multi_case_validation(args.output_dirs, labels, args.Re, args.U_lid, args.save)
