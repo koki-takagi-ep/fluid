@@ -204,7 +204,7 @@ def compute_convergence_order(h_values: np.ndarray, errors: np.ndarray) -> tuple
 def plot_convergence(df: pd.DataFrame, save_file: str = None):
     """格子収束性プロットを作成（両対数グラフ）"""
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
     h_values = df['h'].values
     l2_errors = df['l2_error'].values
@@ -219,6 +219,7 @@ def plot_convergence(df: pd.DataFrame, save_file: str = None):
 
     # === 左: L2誤差 ===
     ax = axes[0]
+    ax.set_box_aspect(1)  # 正方形にする
     ax.loglog(h_values, l2_errors, 'bo-', markersize=8, linewidth=2,
               label=f'$L_2$ error (slope = {p_l2:.2f})')
 
@@ -242,6 +243,7 @@ def plot_convergence(df: pd.DataFrame, save_file: str = None):
 
     # === 右: L∞誤差 ===
     ax = axes[1]
+    ax.set_box_aspect(1)  # 正方形にする
     ax.loglog(h_values, linf_errors, 'rs-', markersize=8, linewidth=2,
               label=f'$L_\\infty$ error (slope = {p_linf:.2f})')
 
