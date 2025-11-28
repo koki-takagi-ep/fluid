@@ -31,11 +31,11 @@ def setup_axis_style(ax, xlabel='', ylabel='', title=''):
     if title:
         ax.set_title(title, fontsize=11, fontweight='bold', pad=12)  # タイトルとグラフの間隔
 
-    # 目盛りを外向きに設定
+    # 目盛りを内向きに設定（カラーバーのみ外向き）
     ax.xaxis.set_ticks_position('both')
     ax.yaxis.set_ticks_position('both')
-    ax.tick_params(which='major', direction='out', length=6, width=1, labelsize=9)
-    ax.tick_params(which='minor', direction='out', length=3, width=0.5)
+    ax.tick_params(which='major', direction='in', length=6, width=1, labelsize=9)
+    ax.tick_params(which='minor', direction='in', length=3, width=0.5)
 
     # マイナー目盛りを追加
     ax.xaxis.set_minor_locator(AutoMinorLocator(5))
@@ -221,6 +221,10 @@ def plot_velocity_field(field: dict, ax=None, title=None, show_streamlines=True,
     setup_axis_style(ax, xlabel=f'$x$ ({length_unit})', ylabel=f'$y$ ({length_unit})', title=title_text)
     ax.set_aspect('equal')
 
+    # 描画範囲を 0 以上に制限
+    ax.set_xlim(max(0, x.min()), x.max())
+    ax.set_ylim(max(0, y.min()), y.max())
+
     return ax
 
 
@@ -252,6 +256,10 @@ def plot_pressure_field(field: dict, ax=None, title=None, length_unit='mm', hori
     setup_axis_style(ax, xlabel=f'$x$ ({length_unit})', ylabel=f'$y$ ({length_unit})', title=title_text)
     ax.set_aspect('equal')
 
+    # 描画範囲を 0 以上に制限
+    ax.set_xlim(max(0, x.min()), x.max())
+    ax.set_ylim(max(0, y.min()), y.max())
+
     return ax
 
 
@@ -276,16 +284,17 @@ def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_uni
 
     # グリッド情報
     nx, ny = field['x'].shape
-    x_1d = np.linspace(field['x'].min(), field['x'].max(), nx) * L_scale
-    y_1d = np.linspace(field['y'].min(), field['y'].max(), ny) * L_scale
+    x_1d = np.linspace(max(0, field['x'].min()), field['x'].max(), nx) * L_scale
+    y_1d = np.linspace(max(0, field['y'].min()), field['y'].max(), ny) * L_scale
 
     u = field['u'] * V_scale
     v = field['v'] * V_scale
     mag = field['magnitude'] * V_scale
 
-    # 背景に速度の大きさをプロット
+    # 背景に速度の大きさをプロット（0以上のみ）
     X, Y = np.meshgrid(x_1d, y_1d)
-    cf = ax.contourf(X, Y, mag.T, levels=50, cmap='viridis')
+    levels = np.linspace(0, mag.max(), 51)
+    cf = ax.contourf(X, Y, mag.T, levels=levels, cmap='viridis', extend='neither')
 
     # カラーバー（横向き対応）
     if horizontal_cbar:
@@ -380,6 +389,10 @@ def plot_streamlines(field: dict, ax=None, title=None, length_unit='mm', vel_uni
     title_text = title if title else f'Streamlines at t = {field["time"]:.4f} s'
     setup_axis_style(ax, xlabel=f'$x$ ({length_unit})', ylabel=f'$y$ ({length_unit})', title=title_text)
     ax.set_aspect('equal')
+
+    # 描画範囲を 0 以上に制限
+    ax.set_xlim(max(0, x_1d[0]), x_1d[-1])
+    ax.set_ylim(max(0, y_1d[0]), y_1d[-1])
 
     return ax
 
@@ -512,7 +525,11 @@ def create_animation(output_dir: str, output_file: str = None, fps: int = 10,
 
 
 def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 600):
-    """最終状態を縦一列で表示（4パネル）"""
+    """最終状態を表示（4パネル）
+
+    正方形グラフ（cavity flow）: 2x2レイアウト、縦向きカラーバー
+    横長グラフ（channel flow）: 縦一列レイアウト、横向きカラーバー
+    """
     metadata = load_metadata(output_dir)
     nx, ny = int(metadata['nx']), int(metadata['ny'])
 
@@ -538,59 +555,66 @@ def plot_final_state(output_dir: str, save_file: str = None, dpi: int = 600):
     x_max_mm = field['x'].max() * L_scale
     y_max_mm = field['y'].max() * L_scale
 
-    # 縦一列レイアウト（4行1列）
-    # カラーマップ図の高さはアスペクト比に応じて調整
-    # centerline velocityは正方形
     if is_channel_flow:
-        # チャネルフロー: 横長の図
+        # チャネルフロー: 縦一列レイアウト、横向きカラーバー
+        from matplotlib.gridspec import GridSpec
+
         panel_width = 10
         panel_height = panel_width / aspect_ratio + 1.5  # カラーバー分の余白
         square_size = 5  # 正方形プロットのサイズ
         fig_height = panel_height * 3 + square_size + 2  # 余白
         fig = plt.figure(figsize=(panel_width, fig_height))
 
-        # GridSpecで柔軟なレイアウト
-        from matplotlib.gridspec import GridSpec
         gs = GridSpec(4, 1, figure=fig, height_ratios=[panel_height, panel_height, panel_height, square_size],
                       hspace=0.4)
-    else:
-        # キャビティフロー: 正方形に近い図
-        panel_size = 6
-        fig_height = panel_size * 4 + 3  # 余白
-        fig = plt.figure(figsize=(panel_size, fig_height))
 
-        from matplotlib.gridspec import GridSpec
-        gs = GridSpec(4, 1, figure=fig, height_ratios=[1, 1, 1, 1], hspace=0.35)
-
-    # 速度場（ベクトル＋カラー）
-    ax1 = fig.add_subplot(gs[0])
-    plot_velocity_field(field, ax=ax1, show_streamlines=False,
-                        title=r'Velocity Field $|\vec{u}|$',
-                        horizontal_cbar=True)
-    if is_channel_flow:
+        # 速度場
+        ax1 = fig.add_subplot(gs[0])
+        plot_velocity_field(field, ax=ax1, show_streamlines=False,
+                            title=r'Velocity Field $|\vec{u}|$',
+                            horizontal_cbar=True)
         setup_channel_flow_axes(ax1, x_max_mm, y_max_mm)
 
-    # 流線
-    ax2 = fig.add_subplot(gs[1])
-    plot_streamlines(field, ax=ax2, title=r'Streamlines $|\vec{u}|$',
-                     horizontal_cbar=True)
-    if is_channel_flow:
+        # 流線
+        ax2 = fig.add_subplot(gs[1])
+        plot_streamlines(field, ax=ax2, title=r'Streamlines $|\vec{u}|$',
+                         horizontal_cbar=True)
         setup_channel_flow_axes(ax2, x_max_mm, y_max_mm)
 
-    # 圧力場
-    ax3 = fig.add_subplot(gs[2])
-    plot_pressure_field(field, ax=ax3, title=r'Pressure Field $p$',
-                        horizontal_cbar=True)
-    if is_channel_flow:
+        # 圧力場
+        ax3 = fig.add_subplot(gs[2])
+        plot_pressure_field(field, ax=ax3, title=r'Pressure Field $p$',
+                            horizontal_cbar=True)
         setup_channel_flow_axes(ax3, x_max_mm, y_max_mm)
 
-    # 中心線速度プロファイル（正方形）
-    ax4 = fig.add_subplot(gs[3])
-    plot_centerline_velocity(field, ax=ax4)
-    ax4.set_box_aspect(1)  # 正方形のaxes box
+        # 中心線速度プロファイル（正方形）
+        ax4 = fig.add_subplot(gs[3])
+        plot_centerline_velocity(field, ax=ax4)
+        ax4.set_box_aspect(1)
 
-    # レイアウト調整（GridSpecを使用しているためsubplots_adjustを使用）
-    fig.subplots_adjust(left=0.12, right=0.95, top=0.97, bottom=0.05)
+        fig.subplots_adjust(left=0.12, right=0.95, top=0.97, bottom=0.05)
+
+    else:
+        # キャビティフロー: 2x2レイアウト、縦向きカラーバー
+        fig, axes = plt.subplots(2, 2, figsize=(10, 9))
+
+        # 速度場（左上）
+        plot_velocity_field(field, ax=axes[0, 0], show_streamlines=False,
+                            title=r'Velocity Field $|\vec{u}|$',
+                            horizontal_cbar=False)
+
+        # 流線（右上）
+        plot_streamlines(field, ax=axes[0, 1], title=r'Streamlines $|\vec{u}|$',
+                         horizontal_cbar=False)
+
+        # 圧力場（左下）
+        plot_pressure_field(field, ax=axes[1, 0], title=r'Pressure Field $p$',
+                            horizontal_cbar=False)
+
+        # 中心線速度プロファイル（右下）
+        plot_centerline_velocity(field, ax=axes[1, 1])
+
+        plt.tight_layout()
 
     # SVG, PDF, PNG の3形式で保存
     base_path = os.path.splitext(save_file)[0]
