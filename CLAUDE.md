@@ -104,10 +104,19 @@ output/
     │   ├── field_000000.csv    # x, y, u, v, p, magnitude
     │   ├── field_000001.csv
     │   └── metadata.csv        # Grid parameters
-    └── figures/
-        └── result.pdf
+    ├── figures/
+    │   └── result.svg          # Visualization output (SVG format)
+    └── simulation.log          # Computation time and settings log
 ```
 
 ## Python Dependencies
 
 numpy, matplotlib, pandas, scipy
+
+## Visualization Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `visualize.py` | Plot velocity/pressure fields, streamlines (SVG output) |
+| `validation.py` | Compare with Ghia et al. (1982) benchmark data |
+| `convergence.py` | Analyze solver convergence history |
