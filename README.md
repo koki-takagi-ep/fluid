@@ -206,7 +206,7 @@ python ../scripts/convergence.py output/channel_projection
 
 ![Cavity Flow Result](docs/images/cavity_projection_result.svg)
 
-▶︎ **左上**: 速度場（ベクトル＋カラーマップ） | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+▶︎ 上から順に：速度場（ベクトル＋カラーマップ）、流線、圧力場、中心線速度分布
 
 ▶︎ 主渦が右上に形成され、左下に二次渦が発生している様子が確認できる。
 
@@ -218,13 +218,13 @@ python ../scripts/convergence.py output/channel_projection
 
 ![Channel Flow - Projection](docs/images/channel_projection_result.svg)
 
-▶︎ **左上**: 速度場 | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+▶︎ 上から順に：速度場、流線、圧力場、中心線速度分布
 
 #### SIMPLE法による結果
 
 ![Channel Flow - SIMPLE](docs/images/channel_simple_result.svg)
 
-▶︎ **左上**: 速度場 | **右上**: 流線 | **左下**: 圧力場 | **右下**: 中心線速度分布
+▶︎ 上から順に：速度場、流線、圧力場、中心線速度分布
 
 ▶︎ 両手法とも、発達した流れでは放物線状の速度分布（Poiseuille流れの理論解）に近づいていることが確認できる。
 
@@ -232,9 +232,9 @@ python ../scripts/convergence.py output/channel_projection
 
 Ghia, Ghia & Shin (1982) のベンチマークデータとの比較により、数値解の妥当性を検証：
 
-![Validation Re=100](docs/images/cavity_validation_Re100.png)
+![Validation Re=100](docs/images/cavity_validation_Re100.svg)
 
-▶︎ 垂直・水平中心線上の速度分布が参照データと良好に一致していることが確認できる。
+▶︎ 異なる格子解像度（64×64, 128×128）での数値解（ライン）とGhiaの参照データ（ドット）を比較。格子を細かくするにつれて参照解に収束していることが確認できる。
 
 ## 計算性能
 
