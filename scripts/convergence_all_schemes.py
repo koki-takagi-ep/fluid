@@ -177,7 +177,7 @@ def setup_axis_style(ax):
 def plot_all_schemes(df: pd.DataFrame, save_file: str = None):
     """Plot grid convergence for all schemes with distinct line styles"""
 
-    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
 
     # Define styles for each scheme
     # Colors: projection=blue, simple=red, piso=green
@@ -240,10 +240,10 @@ def plot_all_schemes(df: pd.DataFrame, save_file: str = None):
     ax.loglog(h_ref, l2_median * (h_ref / h_ref.mean())**2, 'k:',
               linewidth=1, alpha=0.4, label='2nd order')
 
-    ax.set_xlabel(r'Grid spacing $h$ [m]', fontsize=11)
-    ax.set_ylabel(r'$L_2$ error [m/s]', fontsize=11)
-    ax.set_title('Grid Convergence: All Solver/Limiter Combinations', fontsize=12)
-    ax.legend(loc='lower right', fontsize=7, framealpha=0.9, ncol=2)
+    ax.set_xlabel(r'Grid spacing $h$ [m]', fontsize=9)
+    ax.set_ylabel(r'$L_2$ error [m/s]', fontsize=9)
+    ax.set_title('Grid Convergence: Projection Solver with TVD Limiters', fontsize=9)
+    ax.legend(loc='lower right', fontsize=6, framealpha=0.9)
 
     setup_axis_style(ax)
     ax.set_box_aspect(1)
