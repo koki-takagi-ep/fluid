@@ -55,10 +55,10 @@ int PisoSolver::solvePressureCorrection(Grid& grid, const BoundaryCondition& bc,
         }
     }
 
-    // 初期値として現在の圧力場をコピー（より良い初期推定）
+    // 圧力補正p'の初期値は0（PISO法の正しい初期化）
     for (int i = 0; i < nx + 2; ++i) {
         for (int j = 0; j < ny + 2; ++j) {
-            p_prime_[i][j] = grid.p[i][j];
+            p_prime_[i][j] = 0.0;
         }
     }
 
@@ -163,18 +163,18 @@ int PisoSolver::step(Grid& grid, const BoundaryCondition& bc) {
         totalPressureIter += maxPressureIter;  // 非収束時は最大反復回数を記録
     }
 
-    // 圧力を更新: p = p_prime（p_prime_は完全な圧力場）
+    // 圧力を更新: p^{n+1} = p^n + p'（PISO法の正しい更新式）
     #ifdef USE_OPENMP
     #pragma omp parallel for collapse(2)
     #endif
     for (int i = 1; i <= nx; ++i) {
         for (int j = 1; j <= ny; ++j) {
-            grid.p[i][j] = p_prime_[i][j];
+            grid.p[i][j] += p_prime_[i][j];
         }
     }
 
-    // 速度を補正（基底クラスのメソッドを使用）
-    correctVelocity(grid);
+    // 速度を補正: u** = u* - (dt/ρ) * ∇p'
+    correctVelocityWithPressureCorrection(grid, grid.u_star, grid.v_star);
 
     // 補正後の速度をu_double_star_にコピー
     for (int i = 0; i < nx + 1; ++i) {
@@ -201,30 +201,18 @@ int PisoSolver::step(Grid& grid, const BoundaryCondition& bc) {
             totalPressureIter += maxPressureIter;
         }
 
-        // 圧力を更新
+        // 圧力を更新: p = p + p''（追加補正ステップ）
         #ifdef USE_OPENMP
         #pragma omp parallel for collapse(2)
         #endif
         for (int i = 1; i <= nx; ++i) {
             for (int j = 1; j <= ny; ++j) {
-                grid.p[i][j] = p_prime_[i][j];
+                grid.p[i][j] += p_prime_[i][j];
             }
         }
 
-        // u_double_star_をu_starにコピー（correctVelocityがu_starを使用するため）
-        for (int i = 0; i < nx + 1; ++i) {
-            for (int j = 0; j < ny + 2; ++j) {
-                grid.u_star[i][j] = u_double_star_[i][j];
-            }
-        }
-        for (int i = 0; i < nx + 2; ++i) {
-            for (int j = 0; j < ny + 1; ++j) {
-                grid.v_star[i][j] = v_double_star_[i][j];
-            }
-        }
-
-        // 速度を補正（基底クラスのメソッドを使用）
-        correctVelocity(grid);
+        // 速度を補正: u = u** - (dt/ρ) * ∇p''
+        correctVelocityWithPressureCorrection(grid, u_double_star_, v_double_star_);
 
         // 次の補正ステップのためにu_double_star_を更新
         if (corrector < nCorrectors) {
@@ -249,6 +237,37 @@ int PisoSolver::step(Grid& grid, const BoundaryCondition& bc) {
     stepCount_++;
 
     return totalPressureIter;
+}
+
+void PisoSolver::correctVelocityWithPressureCorrection(
+    Grid& grid,
+    const std::vector<std::vector<double>>& u_field,
+    const std::vector<std::vector<double>>& v_field) {
+
+    int nx = grid.nx;
+    int ny = grid.ny;
+    double dx = grid.dx;
+    double dy = grid.dy;
+
+    // u^{n+1} = u_field - (dt/ρ) * ∂p'/∂x
+    #ifdef USE_OPENMP
+    #pragma omp parallel for collapse(2)
+    #endif
+    for (int i = 1; i < nx; ++i) {
+        for (int j = 1; j <= ny; ++j) {
+            grid.u[i][j] = u_field[i][j] - (dt / rho) * (p_prime_[i + 1][j] - p_prime_[i][j]) / dx;
+        }
+    }
+
+    // v^{n+1} = v_field - (dt/ρ) * ∂p'/∂y
+    #ifdef USE_OPENMP
+    #pragma omp parallel for collapse(2)
+    #endif
+    for (int i = 1; i <= nx; ++i) {
+        for (int j = 1; j < ny; ++j) {
+            grid.v[i][j] = v_field[i][j] - (dt / rho) * (p_prime_[i][j + 1] - p_prime_[i][j]) / dy;
+        }
+    }
 }
 
 } // namespace fluid
