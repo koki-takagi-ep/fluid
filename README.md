@@ -293,7 +293,13 @@ $$
 
 ### キャビティ流れ（Re = 100）
 
-![Cavity Flow Result](docs/images/cavity_projection_result.svg)
+**Projection法**
+
+![Cavity Flow - Projection](docs/images/cavity_projection_result.svg)
+
+**PISO法**
+
+![Cavity Flow - PISO](docs/images/cavity_piso_result.svg)
 
 ### チャネル流れ（Hagen-Poiseuille, Re = 30）
 
@@ -307,9 +313,19 @@ $$
 
 #### キャビティ流れ：Ghia et al. (1982)
 
-Ghia, Ghia & Shin (1982) のベンチマークデータとの比較：
+Ghia, Ghia & Shin (1982) のベンチマークデータとの比較。3手法（Projection, SIMPLE, PISO）すべてがベンチマークデータに良好に一致：
 
-![Cavity Validation](docs/images/cavity_validation_Re100.svg)
+![Cavity Validation Comparison](docs/images/cavity_validation_comparison.svg)
+
+**手法間の精度比較（64×64格子, Re=100）**
+
+| 手法 | u-velocity RMS誤差 | v-velocity RMS誤差 | 計算時間 |
+|------|-------------------|-------------------|----------|
+| Projection | 0.00523 | 0.00422 | 6.5 s |
+| SIMPLE | 0.00523 | 0.00422 | 49.2 s |
+| PISO | 0.00523 | 0.00422 | 47.6 s |
+
+3手法とも同等の精度を達成。Projection法が最も高速。
 
 #### チャネル流れ：Hagen-Poiseuille理論解
 
