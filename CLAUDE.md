@@ -38,6 +38,12 @@ cd build
 # Cavity flow - PISO method
 ./cavity_flow_piso [nx] [U_lid] [end_time] [nCorrectors]
 # Example: ./cavity_flow_piso 64 0.01 10.0 2
+
+# Grid convergence study (multiple solvers/limiters)
+./channel_flow_convergence <solver> <limiter> <nx> <ny> <U_max> <end_time> <output_dir>
+# solver: projection, simple, piso
+# limiter: none, minmod, superbee, vanleer, mc
+# Example: ./channel_flow_convergence projection vanleer 128 32 0.015 5.0 output/conv_test
 ```
 
 ## Visualization (from build directory)
@@ -115,9 +121,20 @@ PISO is particularly suited for transient flows (no outer iteration required).
 
 ### Spatial Discretization
 
-- Convection: 1st-order upwind
+- Convection: 1st-order upwind (default) or TVD schemes
 - Diffusion: 2nd-order central difference
 - Pressure: Red-Black SOR
+
+### TVD Schemes (FluxLimiter.hpp)
+
+Optional TVD flux limiters for convection terms:
+- `LimiterType::None` - 1st-order upwind (default)
+- `LimiterType::Minmod` - Most diffusive, very stable
+- `LimiterType::Superbee` - Least diffusive, can be oscillatory
+- `LimiterType::VanLeer` - Good balance (recommended)
+- `LimiterType::MC` - Monotonized Central
+
+Usage: `solver->setLimiter(fluid::LimiterType::VanLeer);`
 
 ### Physical Units
 
@@ -147,6 +164,11 @@ output/
 
 numpy, matplotlib, pandas, scipy
 
+**Note:** Use Python 3.11 with Homebrew packages:
+```bash
+/opt/homebrew/opt/python@3.11/bin/python3.11 scripts/visualize.py ...
+```
+
 ## Visualization Scripts
 
 | Script | Purpose |
@@ -154,3 +176,14 @@ numpy, matplotlib, pandas, scipy
 | `visualize.py` | Plot velocity/pressure fields, streamlines (SVG/PDF/PNG output) |
 | `validation.py` | Compare with Ghia et al. (1982) benchmark data |
 | `convergence.py` | Analyze solver convergence history |
+
+## Git/PR ルール
+
+- **ブランチ名**: プレフィックス付きのシンプルな名前を使用
+  - `feature/` - 新機能（例: `feature/tvd-scheme`）
+  - `fix/` - バグ修正（例: `fix/convergence-plot`）
+  - `docs/` - ドキュメント（例: `docs/readme-update`）
+  - `refactor/` - リファクタリング（例: `refactor/solver-cleanup`）
+  - `test/` - テスト追加（例: `test/boundary-condition`）
+- **PRタイトル・本文**: 日本語で記述
+- **コミットメッセージ**: 英語（Conventional Commits形式）
