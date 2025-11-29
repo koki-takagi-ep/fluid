@@ -9,6 +9,7 @@
 
 #include "Grid.hpp"
 #include "BoundaryCondition.hpp"
+#include "FluxLimiter.hpp"
 #include <functional>
 
 namespace fluid {
@@ -38,6 +39,18 @@ public:
     double dt;          ///< 時間刻み [s]
     double cfl;         ///< CFL数（自動時間刻み用、典型値: 0.5）
     bool autoTimeStep;  ///< 適応的時間刻みを使用するか
+
+    //==========================================================================
+    // 移流スキーム設定
+    //==========================================================================
+
+    LimiterType limiterType;  ///< TVDリミッタータイプ（デフォルト: None = 1次風上）
+
+    /**
+     * @brief TVDリミッターを設定
+     * @param type リミッタータイプ
+     */
+    void setLimiter(LimiterType type) { limiterType = type; }
 
     //==========================================================================
     // コンストラクタ・デストラクタ
@@ -107,7 +120,9 @@ protected:
     double computeTimeStep(const Grid& grid) const;
 
     /**
-     * @brief u速度の移流項を計算（1次風上差分）
+     * @brief u速度の移流項を計算
+     *
+     * limiterType に応じて1次風上差分またはTVDスキームを使用。
      * @f[
      * (\mathbf{u} \cdot \nabla) u \approx u \frac{\partial u}{\partial x} + v \frac{\partial u}{\partial y}
      * @f]
@@ -116,6 +131,21 @@ protected:
 
     /// v速度の移流項を計算
     double convectionV(const Grid& grid, int i, int j) const;
+
+    /**
+     * @brief TVDスキームによる1次元移流項の計算
+     *
+     * MUSCL-Hancock型の高次精度再構築を使用。
+     * @param vel 移流速度
+     * @param phi_mm 2点上流の値 (i-2 or i+2)
+     * @param phi_m  1点上流の値 (i-1 or i+1)
+     * @param phi_c  現在点の値 (i)
+     * @param phi_p  1点下流の値 (i+1 or i-1)
+     * @param dx 格子間隔
+     * @return 移流項 vel * ∂φ/∂x
+     */
+    double tvdConvection1D(double vel, double phi_mm, double phi_m,
+                           double phi_c, double phi_p, double dx) const;
 
     /**
      * @brief u速度の拡散項を計算（2次中心差分）

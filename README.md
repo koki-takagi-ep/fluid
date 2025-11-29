@@ -39,6 +39,8 @@ fluid/
 | [使用方法](docs/USAGE.md) | ビルド、シミュレーション実行、可視化 |
 | [計算結果](docs/RESULTS.md) | シミュレーション結果と検証 |
 | [離散化スキーム](docs/DISCRETIZATION.md) | 空間・時間離散化の詳細 |
+| [TVDスキーム](docs/TVD_SCHEMES.md) | 高次精度移流スキームとリミッター |
+| [計算格子と数値流束](docs/GRID_AND_FLUX.md) | 格子配置の選択と理論的背景 |
 | [参考文献](docs/REFERENCES.md) | 参考文献一覧 |
 
 ## クイックスタート
@@ -256,7 +258,9 @@ u[i-1,j]  p[i,j]  u[i,j]
 2. 質量保存（連続の式）を正確に離散化
 3. 圧力勾配を直接評価可能
 
-#### 移流項（1次風上差分）
+#### 移流項（1次風上差分 / TVDスキーム）
+
+デフォルトでは1次風上差分を使用：
 
 $$
 u \frac{\partial u}{\partial x} \approx u_{i,j} \times \begin{cases}
@@ -264,6 +268,22 @@ u \frac{\partial u}{\partial x} \approx u_{i,j} \times \begin{cases}
 \frac{u_{i+1,j} - u_{i,j}}{\Delta x} & (u_{i,j} < 0)
 \end{cases}
 $$
+
+**TVDスキーム（オプション）**: 数値拡散を低減しつつ振動を抑制する高次精度スキーム。4種類のフラックスリミッターを実装：
+
+| リミッター | 特徴 | 用途 |
+|-----------|------|------|
+| Minmod | 最も拡散的、最も安定 | 不連続面 |
+| Superbee | 最も圧縮的 | 急勾配の保存 |
+| Van Leer | 滑らかで対称的 | 汎用 |
+| MC | 中心差分に近い | 滑らかな流れ |
+
+```cpp
+// TVDスキームの使用例
+solver.setLimiter(fluid::LimiterType::VanLeer);
+```
+
+詳細は [TVDスキーム](docs/TVD_SCHEMES.md) を参照。
 
 #### 拡散項（2次中心差分）
 
@@ -326,6 +346,24 @@ Ghia, Ghia & Shin (1982) のベンチマークデータとの比較。3手法（
 | PISO | 0.00523 | 0.00422 | 47.6 s |
 
 3手法とも同等の精度を達成。Projection法が最も高速。
+
+#### TVDスキーム比較
+
+5種類の移流スキーム（1次風上 + 4種のTVDリミッター）の比較：
+
+![TVD Validation Comparison](docs/images/tvd_validation_comparison.svg)
+
+**計算時間比較（64×64格子, Re=100, 20秒）**
+
+| スキーム | 計算時間 | ステップ数 | 最大発散 |
+|---------|---------|-----------|---------|
+| 1次風上 | 6.5 s | 6554 | 3.8e-7 |
+| Minmod | 5.3 s | 6554 | 1.2e-6 |
+| Superbee | 5.8 s | 6554 | 1.3e-6 |
+| Van Leer | 5.9 s | 6554 | 5.5e-7 |
+| MC | 5.6 s | 6554 | 3.8e-7 |
+
+TVDスキームは1次風上より高速で収束も良好。詳細は [TVDスキーム](docs/TVD_SCHEMES.md) を参照。
 
 #### チャネル流れ：Hagen-Poiseuille理論解
 

@@ -52,6 +52,12 @@ target_link_libraries(channel_flow_piso fluid_solver)
 add_executable(cavity_flow_piso examples/cavity_flow_piso.cpp)
 target_link_libraries(cavity_flow_piso fluid_solver)
 
+add_executable(tvd_benchmark examples/tvd_benchmark.cpp)
+target_link_libraries(tvd_benchmark fluid_solver)
+
+add_executable(channel_flow_convergence examples/channel_flow_convergence.cpp)
+target_link_libraries(channel_flow_convergence fluid_solver)
+
 # インストール
 install(TARGETS fluid_solver LIBRARY DESTINATION lib)
 install(DIRECTORY include/ DESTINATION include)

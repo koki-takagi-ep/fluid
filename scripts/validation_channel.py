@@ -24,7 +24,7 @@ import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator
+from matplotlib.ticker import MultipleLocator
 
 
 def get_data_dir(output_dir: str) -> str:
@@ -93,19 +93,15 @@ def poiseuille_pressure_gradient(mu: float, U_max: float, H: float) -> float:
     return -8.0 * mu * U_max / (H**2)
 
 
-def setup_axis_style(ax, xlabel='', ylabel='', title=''):
-    """軸のスタイル設定"""
-    ax.set_xlabel(xlabel, fontsize=11, fontweight='bold')
-    ax.set_ylabel(ylabel, fontsize=11, fontweight='bold')
-    if title:
-        ax.set_title(title, fontsize=12, fontweight='bold')
+def setup_axis_style(ax):
+    """軸のスタイルを設定（内向き目盛り）"""
+    ax.tick_params(axis='both', which='major', direction='in', length=6, width=1,
+                   labelsize=10, top=True, right=True)
+    ax.tick_params(axis='both', which='minor', direction='in', length=3, width=0.8,
+                   top=True, right=True)
 
-    ax.xaxis.set_ticks_position('both')
-    ax.yaxis.set_ticks_position('both')
-    ax.tick_params(which='major', direction='in', length=6, width=1, labelsize=10)
-    ax.tick_params(which='minor', direction='in', length=3, width=0.5)
-    ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-    ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
 
 
 def extract_velocity_profiles(data: dict, x_positions: list = None):
@@ -179,7 +175,7 @@ def compute_errors(y_sim: np.ndarray, u_sim: np.ndarray,
 
 def plot_validation(output_dir: str, U_max: float, H: float = None,
                     save_file: str = None):
-    """検証プロットを作成（単一ケース）
+    """検証プロットを作成（単一ケース、正方形グラフ）
 
     Args:
         output_dir: 出力ディレクトリ
@@ -201,29 +197,33 @@ def plot_validation(output_dir: str, U_max: float, H: float = None,
     y_theory = np.linspace(0, 1, 100)
     u_theory = poiseuille_velocity(y_theory * H, H, U_max) / U_max  # 無次元化
 
-    # プロット作成
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    # プロット作成（正方形パネル）
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
     # 左: 速度プロファイルの比較
     ax = axes[0]
     colors = plt.cm.viridis(np.linspace(0.2, 0.8, len(x_positions)))
 
     # 理論解（黒線）
-    ax.plot(u_theory, y_theory, 'k-', linewidth=2, label='Theory (Poiseuille)')
+    ax.plot(u_theory, y_theory, 'k-', linewidth=1, label='Theory (Poiseuille)', zorder=10)
 
     # 数値解（各x位置）
     for idx, (x_norm, prof) in enumerate(profiles.items()):
         u_norm = prof['u'] / U_max  # 無次元化
         ax.plot(u_norm, prof['y'], 'o-', color=colors[idx],
-                markersize=4, linewidth=1,
-                label=f'CFD ($x/L_x$ = {prof["x_actual"]:.2f})')
+                markersize=3, linewidth=1,
+                label=f'CFD ($x/L_x$ = {prof["x_actual"]:.2f})', zorder=2)
 
-    setup_axis_style(ax, xlabel=r'$u / U_{\rm max}$', ylabel=r'$y / H$',
-                     title='Velocity Profile Comparison')
+    ax.set_xlabel(r'$u/U_{max}$', fontsize=11)
+    ax.set_ylabel(r'$y/H$', fontsize=11)
+    ax.set_title('Velocity Profile Comparison', fontsize=12)
     ax.set_xlim(-0.05, 1.1)
     ax.set_ylim(0, 1)
-    ax.legend(loc='center left', fontsize=8, frameon=True, edgecolor='black')
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.legend(loc='center left', fontsize=7, framealpha=0.9)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 右: 出口での詳細比較
     ax = axes[1]
@@ -237,19 +237,23 @@ def plot_validation(output_dir: str, U_max: float, H: float = None,
     # 理論解との比較
     u_theory_at_sim = poiseuille_velocity(y_sim * H, H, U_max) / U_max
 
-    ax.plot(u_theory_at_sim, y_sim, 'k-', linewidth=2, label='Theory')
-    ax.plot(u_sim, y_sim, 'bo-', markersize=5, markerfacecolor='none',
-            linewidth=1, label=f'CFD ($x/L_x$ = {prof_outlet["x_actual"]:.2f})')
+    ax.plot(u_theory_at_sim, y_sim, 'k-', linewidth=1, label='Theory', zorder=10)
+    ax.plot(u_sim, y_sim, 'bo', markersize=5,
+            label=f'CFD ($x/L_x$ = {prof_outlet["x_actual"]:.2f})', zorder=2)
 
     # 誤差を計算
     errors = compute_errors(y_sim, prof_outlet['u'], H, U_max)
 
-    setup_axis_style(ax, xlabel=r'$u / U_{\rm max}$', ylabel=r'$y / H$',
-                     title='Outlet Velocity Profile')
+    ax.set_xlabel(r'$u/U_{max}$', fontsize=11)
+    ax.set_ylabel(r'$y/H$', fontsize=11)
+    ax.set_title('Outlet Velocity Profile', fontsize=12)
     ax.set_xlim(-0.05, 1.1)
     ax.set_ylim(0, 1)
-    ax.legend(loc='center left', fontsize=10, frameon=True, edgecolor='black')
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.legend(loc='center left', fontsize=9, framealpha=0.9)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 誤差情報をテキストで追加
     error_text = (f"RMS error: {errors['relative_rms']*100:.2f}%\n"
@@ -259,9 +263,7 @@ def plot_validation(output_dir: str, U_max: float, H: float = None,
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
 
     # 全体タイトル
-    Re = (2.0/3.0) * U_max * H / 1e-6  # 概算（水の動粘性係数を仮定）
-    fig.suptitle(f'Hagen-Poiseuille Flow Validation',
-                 fontsize=14, fontweight='bold', y=1.02)
+    fig.suptitle('Hagen-Poiseuille Flow Validation', fontsize=13, y=0.98)
 
     plt.tight_layout()
 
@@ -275,7 +277,7 @@ def plot_validation(output_dir: str, U_max: float, H: float = None,
         out_file = base_path + ext
         dpi = 300 if ext == '.png' else None
         plt.savefig(out_file, bbox_inches='tight', dpi=dpi)
-        print(f"Figure saved to {out_file}")
+        print(f"Saved: {out_file}")
 
     # 誤差の詳細出力
     print("\n=== Validation Results ===")
@@ -291,7 +293,7 @@ def plot_validation(output_dir: str, U_max: float, H: float = None,
 def plot_multi_case_validation(output_dirs: list, labels: list,
                                U_max: float, H: float = None,
                                save_file: str = None):
-    """複数ケース（異なるセル数・スキーム）の検証プロット
+    """複数ケース（異なるセル数・スキーム）の検証プロット（正方形グラフ）
 
     Args:
         output_dirs: 出力ディレクトリのリスト
@@ -303,13 +305,14 @@ def plot_multi_case_validation(output_dirs: list, labels: list,
     # 理論解
     y_theory = np.linspace(0, 1, 100)
 
-    # プロット作成
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    # プロット作成（正方形パネル）
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-    colors = plt.cm.tab10.colors
+    colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd']
     linestyles = ['-', '--', '-.', ':']
 
     errors_all = {}
+    H_case = None
 
     for idx, (output_dir, label) in enumerate(zip(output_dirs, labels)):
         try:
@@ -329,7 +332,7 @@ def plot_multi_case_validation(output_dirs: list, labels: list,
             # 左パネル: 速度プロファイル
             u_norm = prof['u'] / U_max
             axes[0].plot(u_norm, prof['y'], color=color, linestyle=ls,
-                        linewidth=1.5, label=label)
+                        linewidth=1, label=label, zorder=3+idx)
 
             # 誤差計算
             errors = compute_errors(prof['y'], prof['u'], H_case, U_max)
@@ -339,7 +342,7 @@ def plot_multi_case_validation(output_dirs: list, labels: list,
             u_theory_at_sim = poiseuille_velocity(prof['y'] * H_case, H_case, U_max)
             error_percent = (prof['u'] - u_theory_at_sim) / U_max * 100
             axes[1].plot(error_percent, prof['y'], color=color, linestyle=ls,
-                        linewidth=1.5, label=label)
+                        linewidth=1, label=label, zorder=3+idx)
 
             print(f"{label}: RMS error = {errors['relative_rms']*100:.4f}%")
 
@@ -348,31 +351,38 @@ def plot_multi_case_validation(output_dirs: list, labels: list,
             continue
 
     # 理論解を追加（左パネル）
-    u_theory_norm = poiseuille_velocity(y_theory * H_case, H_case, U_max) / U_max
-    axes[0].plot(u_theory_norm, y_theory, 'k-', linewidth=2,
-                 label='Theory', zorder=0)
+    if H_case is not None:
+        u_theory_norm = poiseuille_velocity(y_theory * H_case, H_case, U_max) / U_max
+        axes[0].plot(u_theory_norm, y_theory, 'k-', linewidth=1,
+                     label='Theory', zorder=10)
 
     # 左パネルのスタイル
     ax = axes[0]
-    setup_axis_style(ax, xlabel=r'$u / U_{\rm max}$', ylabel=r'$y / H$',
-                     title='Velocity Profile at Outlet')
+    ax.set_xlabel(r'$u/U_{max}$', fontsize=11)
+    ax.set_ylabel(r'$y/H$', fontsize=11)
+    ax.set_title('Velocity Profile at Outlet', fontsize=12)
     ax.set_xlim(-0.05, 1.1)
     ax.set_ylim(0, 1)
-    ax.legend(loc='center left', fontsize=9, frameon=True, edgecolor='black')
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.legend(loc='center left', fontsize=8, framealpha=0.9)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 右パネルのスタイル
     ax = axes[1]
     ax.axvline(x=0, color='k', linestyle='-', linewidth=0.5)
-    setup_axis_style(ax, xlabel='Error [%]', ylabel=r'$y / H$',
-                     title='Deviation from Theory')
+    ax.set_xlabel('Error [%]', fontsize=11)
+    ax.set_ylabel(r'$y/H$', fontsize=11)
+    ax.set_title('Deviation from Theory', fontsize=12)
     ax.set_ylim(0, 1)
-    ax.legend(loc='best', fontsize=9, frameon=True, edgecolor='black')
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.legend(loc='best', fontsize=8, framealpha=0.9)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 全体タイトル
-    fig.suptitle('Hagen-Poiseuille Flow Validation',
-                 fontsize=14, fontweight='bold', y=1.02)
+    fig.suptitle('Hagen-Poiseuille Flow Validation', fontsize=13, y=0.98)
 
     plt.tight_layout()
 
@@ -385,7 +395,7 @@ def plot_multi_case_validation(output_dirs: list, labels: list,
         out_file = base_path + ext
         dpi = 300 if ext == '.png' else None
         plt.savefig(out_file, bbox_inches='tight', dpi=dpi)
-        print(f"Figure saved to {out_file}")
+        print(f"Saved: {out_file}")
 
     return errors_all
 

@@ -26,7 +26,7 @@ import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator
+from matplotlib.ticker import MultipleLocator
 import subprocess
 import sys
 
@@ -201,8 +201,19 @@ def compute_convergence_order(h_values: np.ndarray, errors: np.ndarray) -> tuple
     return p, C
 
 
+def setup_axis_style(ax):
+    """軸のスタイルを設定（内向き目盛り）"""
+    ax.tick_params(axis='both', which='major', direction='in', length=6, width=1,
+                   labelsize=10, top=True, right=True)
+    ax.tick_params(axis='both', which='minor', direction='in', length=3, width=0.8,
+                   top=True, right=True)
+
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
+
+
 def plot_convergence(df: pd.DataFrame, save_file: str = None):
-    """格子収束性プロットを作成（両対数グラフ）"""
+    """格子収束性プロットを作成（両対数グラフ、正方形パネル）"""
 
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -219,8 +230,7 @@ def plot_convergence(df: pd.DataFrame, save_file: str = None):
 
     # === 左: L2誤差 ===
     ax = axes[0]
-    ax.set_box_aspect(1)  # 正方形にする
-    ax.loglog(h_values, l2_errors, 'bo-', markersize=8, linewidth=2,
+    ax.loglog(h_values, l2_errors, 'bo-', markersize=6, linewidth=1,
               label=f'$L_2$ error (slope = {p_l2:.2f})')
 
     # 1次・2次の参照線
@@ -229,22 +239,23 @@ def plot_convergence(df: pd.DataFrame, save_file: str = None):
     ax.loglog(h_ref, C_l2 * h_ref**2, 'k:', linewidth=1, alpha=0.5,
               label='2nd order ($h^2$)')
 
-    ax.set_xlabel(r'Grid spacing $h$ [m]', fontsize=11, fontweight='bold')
-    ax.set_ylabel(r'$L_2$ error [m/s]', fontsize=11, fontweight='bold')
-    ax.set_title(r'$L_2$ Error Convergence', fontsize=12, fontweight='bold')
-    ax.legend(loc='lower right', fontsize=9)
-    ax.grid(True, which='both', alpha=0.3, linestyle='--')
+    ax.set_xlabel(r'Grid spacing $h$ [m]', fontsize=11)
+    ax.set_ylabel(r'$L_2$ error [m/s]', fontsize=11)
+    ax.set_title(r'$L_2$ Error Convergence', fontsize=12)
+    ax.legend(loc='lower right', fontsize=8, framealpha=0.9)
 
     # 収束次数をテキストで表示
     ax.text(0.05, 0.95, f'Convergence order: {p_l2:.2f}',
-            transform=ax.transAxes, fontsize=11, fontweight='bold',
+            transform=ax.transAxes, fontsize=10,
             verticalalignment='top',
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
 
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
+
     # === 右: L∞誤差 ===
     ax = axes[1]
-    ax.set_box_aspect(1)  # 正方形にする
-    ax.loglog(h_values, linf_errors, 'rs-', markersize=8, linewidth=2,
+    ax.loglog(h_values, linf_errors, 'rs-', markersize=6, linewidth=1,
               label=f'$L_\\infty$ error (slope = {p_linf:.2f})')
 
     ax.loglog(h_ref, C_linf * h_ref**1, 'k--', linewidth=1, alpha=0.5,
@@ -252,20 +263,22 @@ def plot_convergence(df: pd.DataFrame, save_file: str = None):
     ax.loglog(h_ref, C_linf * h_ref**2, 'k:', linewidth=1, alpha=0.5,
               label='2nd order ($h^2$)')
 
-    ax.set_xlabel(r'Grid spacing $h$ [m]', fontsize=11, fontweight='bold')
-    ax.set_ylabel(r'$L_\infty$ error [m/s]', fontsize=11, fontweight='bold')
-    ax.set_title(r'$L_\infty$ Error Convergence', fontsize=12, fontweight='bold')
-    ax.legend(loc='lower right', fontsize=9)
-    ax.grid(True, which='both', alpha=0.3, linestyle='--')
+    ax.set_xlabel(r'Grid spacing $h$ [m]', fontsize=11)
+    ax.set_ylabel(r'$L_\infty$ error [m/s]', fontsize=11)
+    ax.set_title(r'$L_\infty$ Error Convergence', fontsize=12)
+    ax.legend(loc='lower right', fontsize=8, framealpha=0.9)
 
     ax.text(0.05, 0.95, f'Convergence order: {p_linf:.2f}',
-            transform=ax.transAxes, fontsize=11, fontweight='bold',
+            transform=ax.transAxes, fontsize=10,
             verticalalignment='top',
             bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
 
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
+
     # 全体タイトル
     fig.suptitle('Grid Convergence Study: Hagen-Poiseuille Flow',
-                 fontsize=14, fontweight='bold', y=1.02)
+                 fontsize=13, y=0.98)
 
     plt.tight_layout()
 
