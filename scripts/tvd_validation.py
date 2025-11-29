@@ -9,6 +9,7 @@ import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 
 # Ghia et al. (1982) benchmark data for Re=100
 GHIA_RE100 = {
@@ -95,10 +96,24 @@ def compute_rms_error(sim_data, ghia_data, U_lid):
     return u_rms, v_rms
 
 
+def setup_axes_style(ax):
+    """軸のスタイルを設定（ユーザー指定のデザイン）"""
+    # 目盛りを内向きに
+    ax.tick_params(axis='both', which='major', direction='in', length=6, width=1,
+                   labelsize=10, top=True, right=True)
+    ax.tick_params(axis='both', which='minor', direction='in', length=3, width=0.8,
+                   top=True, right=True)
+
+    # 軸の線幅
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
+
+
 def main():
     build_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.join(os.path.dirname(build_dir), 'build')
 
+    # リミッター設定（描画順序を考慮）
     limiters = {
         'Upwind (1st-order)': 'tvd_upwind',
         'Minmod': 'tvd_minmod',
@@ -107,12 +122,13 @@ def main():
         'MC': 'tvd_mc'
     }
 
+    # 色: 実線は濃い色、破線は区別しやすい色
     colors = {
-        'Upwind (1st-order)': 'C0',
-        'Minmod': 'C1',
-        'Superbee': 'C2',
-        'Van Leer': 'C3',
-        'MC': 'C4'
+        'Upwind (1st-order)': '#1f77b4',  # blue
+        'Minmod': '#d62728',               # red
+        'Superbee': '#2ca02c',             # green
+        'Van Leer': '#7f7f7f',             # gray (dotted)
+        'MC': '#9467bd'                    # purple
     }
 
     linestyles = {
@@ -123,17 +139,26 @@ def main():
         'MC': '-'
     }
 
+    # zorder: 破線を前面に（大きい値が前面）
+    zorders = {
+        'Upwind (1st-order)': 2,
+        'Minmod': 5,
+        'Superbee': 4,
+        'Van Leer': 6,
+        'MC': 3
+    }
+
     U_lid = 0.01  # m/s
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-
-    # 左: u-velocity along vertical centerline
-    ax = axes[0]
-    ax.plot(GHIA_RE100['u'], GHIA_RE100['u_y'], 'ko', markersize=8,
-            label='Ghia et al. (1982)', zorder=10)
+    # フィギュアサイズ（ユーザー指定に近いサイズ）
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
     rms_errors = {}
 
+    # 左: u-velocity along vertical centerline
+    ax = axes[0]
+
+    # まずシミュレーション結果をプロット（背面）
     for name, dirname in limiters.items():
         path = os.path.join(build_dir, f'output/{dirname}')
         if os.path.exists(path):
@@ -142,25 +167,31 @@ def main():
                 centerline = extract_centerline_data(data, U_lid)
                 ax.plot(centerline['u'], centerline['y'],
                        color=colors[name], linestyle=linestyles[name],
-                       linewidth=2, label=name)
+                       linewidth=1, label=name, zorder=zorders[name])
 
                 u_rms, v_rms = compute_rms_error(data, GHIA_RE100, U_lid)
                 rms_errors[name] = (u_rms, v_rms)
             except Exception as e:
                 print(f"Error loading {name}: {e}")
 
-    ax.set_xlabel(r'$u / U_{lid}$', fontsize=12, fontweight='bold')
-    ax.set_ylabel(r'$y / L$', fontsize=12, fontweight='bold')
-    ax.set_title(r'$u$-velocity along vertical centerline', fontsize=13, fontweight='bold')
-    ax.legend(loc='lower right', fontsize=9)
-    ax.grid(True, alpha=0.3, linestyle='--')
-    ax.set_xlim(-0.5, 1.1)
+    # Ghiaデータを最前面に
+    ax.plot(GHIA_RE100['u'], GHIA_RE100['u_y'], 'ko', markersize=6,
+            label='Ghia et al. (1982)', zorder=10)
+
+    ax.set_xlabel(r'$u/U_{lid}$', fontsize=11)
+    ax.set_ylabel(r'$y/L$', fontsize=11)
+    ax.set_title(r'$u$-velocity along vertical centerline', fontsize=12)
+    ax.legend(loc='lower right', fontsize=8, framealpha=0.9)
+    ax.set_xlim(-0.4, 1.0)
     ax.set_ylim(0, 1)
+
+    # マイナー目盛り
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    setup_axes_style(ax)
 
     # 右: v-velocity along horizontal centerline
     ax = axes[1]
-    ax.plot(GHIA_RE100['v_x'], GHIA_RE100['v'], 'ko', markersize=8,
-            label='Ghia et al. (1982)', zorder=10)
 
     for name, dirname in limiters.items():
         path = os.path.join(build_dir, f'output/{dirname}')
@@ -170,20 +201,28 @@ def main():
                 centerline = extract_centerline_data(data, U_lid)
                 ax.plot(centerline['x'], centerline['v'],
                        color=colors[name], linestyle=linestyles[name],
-                       linewidth=2, label=name)
+                       linewidth=1, label=name, zorder=zorders[name])
             except Exception as e:
                 print(f"Error loading {name}: {e}")
 
-    ax.set_xlabel(r'$x / L$', fontsize=12, fontweight='bold')
-    ax.set_ylabel(r'$v / U_{lid}$', fontsize=12, fontweight='bold')
-    ax.set_title(r'$v$-velocity along horizontal centerline', fontsize=13, fontweight='bold')
-    ax.legend(loc='upper right', fontsize=9)
-    ax.grid(True, alpha=0.3, linestyle='--')
+    # Ghiaデータを最前面に
+    ax.plot(GHIA_RE100['v_x'], GHIA_RE100['v'], 'ko', markersize=6,
+            label='Ghia et al. (1982)', zorder=10)
+
+    ax.set_xlabel(r'$x/L$', fontsize=11)
+    ax.set_ylabel(r'$v/U_{lid}$', fontsize=11)
+    ax.set_title(r'$v$-velocity along horizontal centerline', fontsize=12)
+    ax.legend(loc='upper right', fontsize=8, framealpha=0.9)
     ax.set_xlim(0, 1)
     ax.set_ylim(-0.5, 0.4)
 
+    # マイナー目盛り
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    setup_axes_style(ax)
+
     fig.suptitle('TVD Limiter Comparison: Cavity Flow Validation (Re = 100)',
-                 fontsize=14, fontweight='bold', y=1.02)
+                 fontsize=13, y=0.98)
     plt.tight_layout()
 
     # RMS誤差を表示
