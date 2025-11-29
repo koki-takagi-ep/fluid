@@ -16,7 +16,8 @@
 namespace fluid {
 
 SolverBase::SolverBase(double rho, double nu, double dt)
-    : rho(rho), nu(nu), dt(dt), cfl(constants::DEFAULT_CFL), autoTimeStep(true)
+    : rho(rho), nu(nu), dt(dt), cfl(constants::DEFAULT_CFL), autoTimeStep(true),
+      limiterType(LimiterType::None)
 {
 }
 
@@ -52,33 +53,138 @@ double SolverBase::computeTimeStep(const Grid& grid) const {
     return std::min(dt_conv, dt_diff);
 }
 
+double SolverBase::tvdConvection1D(double vel, double phi_mm, double phi_m,
+                                    double phi_c, double phi_p, double dx) const {
+    // TVDスキームによる移流項計算
+    // vel * ∂φ/∂x をMUSCL型再構築で計算
+
+    if (limiterType == LimiterType::None) {
+        // 1次風上差分
+        if (vel >= 0.0) {
+            return vel * (phi_c - phi_m) / dx;
+        } else {
+            return vel * (phi_p - phi_c) / dx;
+        }
+    }
+
+    // TVDスキーム: 高次精度補正付き風上差分
+    // φ_{i+1/2}^L = φ_i + 0.5 * ψ(r_i) * (φ_i - φ_{i-1})
+    // φ_{i+1/2}^R = φ_{i+1} - 0.5 * ψ(r_{i+1}) * (φ_{i+2} - φ_{i+1})
+
+    const double eps = 1.0e-10;  // ゼロ除算防止
+
+    if (vel >= 0.0) {
+        // 上流側から情報が来る
+        // 勾配比 r = (φ_c - φ_m) / (φ_p - φ_c)
+        double delta_up = phi_c - phi_m;      // 上流側の勾配
+        double delta_down = phi_p - phi_c;    // 下流側の勾配
+
+        double r = (std::abs(delta_down) > eps)
+                 ? delta_up / delta_down
+                 : 0.0;
+
+        double psi = limiter::apply(limiterType, r);
+
+        // 2次精度補正: φ_{i+1/2} = φ_c + 0.5 * ψ(r) * (φ_p - φ_c)
+        double phi_face = phi_c + 0.5 * psi * delta_down;
+
+        // 1点上流での勾配比も計算
+        double delta_up_m = phi_m - phi_mm;
+        double r_m = (std::abs(delta_up) > eps)
+                   ? delta_up_m / delta_up
+                   : 0.0;
+        double psi_m = limiter::apply(limiterType, r_m);
+        double phi_face_m = phi_m + 0.5 * psi_m * delta_up;
+
+        // 移流項: vel * (φ_{i+1/2} - φ_{i-1/2}) / dx
+        return vel * (phi_face - phi_face_m) / dx;
+    } else {
+        // 下流側から情報が来る（vel < 0）
+        double delta_up = phi_c - phi_p;      // 上流側（右）の勾配
+        double delta_down = phi_m - phi_c;    // 下流側（左）の勾配
+
+        double r = (std::abs(delta_down) > eps)
+                 ? delta_up / delta_down
+                 : 0.0;
+
+        double psi = limiter::apply(limiterType, r);
+
+        // φ_{i-1/2} = φ_c + 0.5 * ψ(r) * (φ_m - φ_c) (右からの外挿)
+        double phi_face = phi_c + 0.5 * psi * delta_down;
+
+        // 1点下流での勾配比
+        double delta_up_p = phi_p - phi_mm;  // phi_mm は実際には phi_{i+2}
+        double r_p = (std::abs(delta_up) > eps)
+                   ? delta_up_p / delta_up
+                   : 0.0;
+        double psi_p = limiter::apply(limiterType, r_p);
+        double phi_face_p = phi_p + 0.5 * psi_p * delta_up;
+
+        return vel * (phi_face_p - phi_face) / dx;
+    }
+}
+
 double SolverBase::convectionU(const Grid& grid, int i, int j) const {
     // u速度の移流項: (u・∇)u at u[i][j]
-    // 1次精度風上差分スキーム
     const double dx = grid.dx;
     const double dy = grid.dy;
     const double u_here = grid.u[i][j];
-
-    // ∂u/∂x: 風上差分
-    const double dudx = (u_here >= 0)
-        ? (u_here - grid.u[i - 1][j]) / dx
-        : (grid.u[i + 1][j] - u_here) / dx;
 
     // v速度をu点に補間（4点平均）
     const double v_here = constants::FOUR_POINT_AVERAGE_COEFF
         * (grid.v[i][j - 1] + grid.v[i + 1][j - 1] + grid.v[i][j] + grid.v[i + 1][j]);
 
-    // ∂u/∂y: 風上差分
-    const double dudy = (v_here >= 0)
-        ? (u_here - grid.u[i][j - 1]) / dy
-        : (grid.u[i][j + 1] - u_here) / dy;
+    double dudx, dudy;
 
-    return u_here * dudx + v_here * dudy;
+    if (limiterType == LimiterType::None) {
+        // 1次精度風上差分スキーム
+        dudx = (u_here >= 0)
+            ? (u_here - grid.u[i - 1][j]) / dx
+            : (grid.u[i + 1][j] - u_here) / dx;
+
+        dudy = (v_here >= 0)
+            ? (u_here - grid.u[i][j - 1]) / dy
+            : (grid.u[i][j + 1] - u_here) / dy;
+
+        return u_here * dudx + v_here * dudy;
+    }
+
+    // TVDスキーム
+    // x方向: 境界チェック付きでステンシルを取得
+    int nx = grid.nx;
+    double u_mm = (i >= 2) ? grid.u[i - 2][j] : grid.u[i - 1][j];
+    double u_m  = grid.u[i - 1][j];
+    double u_c  = grid.u[i][j];
+    double u_p  = (i < nx - 1) ? grid.u[i + 1][j] : grid.u[i][j];
+    double u_pp = (i < nx - 2) ? grid.u[i + 2][j] : u_p;
+
+    // y方向
+    int ny = grid.ny;
+    double u_jmm = (j >= 2) ? grid.u[i][j - 2] : grid.u[i][j - 1];
+    double u_jm  = grid.u[i][j - 1];
+    double u_jc  = grid.u[i][j];
+    double u_jp  = (j < ny) ? grid.u[i][j + 1] : grid.u[i][j];
+    double u_jpp = (j < ny - 1) ? grid.u[i][j + 2] : u_jp;
+
+    // TVD移流項
+    double conv_x, conv_y;
+    if (u_here >= 0) {
+        conv_x = tvdConvection1D(u_here, u_mm, u_m, u_c, u_p, dx);
+    } else {
+        conv_x = tvdConvection1D(u_here, u_pp, u_p, u_c, u_m, dx);
+    }
+
+    if (v_here >= 0) {
+        conv_y = tvdConvection1D(v_here, u_jmm, u_jm, u_jc, u_jp, dy);
+    } else {
+        conv_y = tvdConvection1D(v_here, u_jpp, u_jp, u_jc, u_jm, dy);
+    }
+
+    return conv_x + conv_y;
 }
 
 double SolverBase::convectionV(const Grid& grid, int i, int j) const {
     // v速度の移流項: (u・∇)v at v[i][j]
-    // 1次精度風上差分スキーム
     const double dx = grid.dx;
     const double dy = grid.dy;
     const double v_here = grid.v[i][j];
@@ -87,17 +193,53 @@ double SolverBase::convectionV(const Grid& grid, int i, int j) const {
     const double u_here = constants::FOUR_POINT_AVERAGE_COEFF
         * (grid.u[i - 1][j] + grid.u[i][j] + grid.u[i - 1][j + 1] + grid.u[i][j + 1]);
 
-    // ∂v/∂x: 風上差分
-    const double dvdx = (u_here >= 0)
-        ? (v_here - grid.v[i - 1][j]) / dx
-        : (grid.v[i + 1][j] - v_here) / dx;
+    double dvdx, dvdy;
 
-    // ∂v/∂y: 風上差分
-    const double dvdy = (v_here >= 0)
-        ? (v_here - grid.v[i][j - 1]) / dy
-        : (grid.v[i][j + 1] - v_here) / dy;
+    if (limiterType == LimiterType::None) {
+        // 1次精度風上差分スキーム
+        dvdx = (u_here >= 0)
+            ? (v_here - grid.v[i - 1][j]) / dx
+            : (grid.v[i + 1][j] - v_here) / dx;
 
-    return u_here * dvdx + v_here * dvdy;
+        dvdy = (v_here >= 0)
+            ? (v_here - grid.v[i][j - 1]) / dy
+            : (grid.v[i][j + 1] - v_here) / dy;
+
+        return u_here * dvdx + v_here * dvdy;
+    }
+
+    // TVDスキーム
+    // x方向: 境界チェック付きでステンシルを取得
+    int nx = grid.nx;
+    double v_mm = (i >= 2) ? grid.v[i - 2][j] : grid.v[i - 1][j];
+    double v_m  = grid.v[i - 1][j];
+    double v_c  = grid.v[i][j];
+    double v_p  = (i < nx) ? grid.v[i + 1][j] : grid.v[i][j];
+    double v_pp = (i < nx - 1) ? grid.v[i + 2][j] : v_p;
+
+    // y方向
+    int ny = grid.ny;
+    double v_jmm = (j >= 2) ? grid.v[i][j - 2] : grid.v[i][j - 1];
+    double v_jm  = grid.v[i][j - 1];
+    double v_jc  = grid.v[i][j];
+    double v_jp  = (j < ny - 1) ? grid.v[i][j + 1] : grid.v[i][j];
+    double v_jpp = (j < ny - 2) ? grid.v[i][j + 2] : v_jp;
+
+    // TVD移流項
+    double conv_x, conv_y;
+    if (u_here >= 0) {
+        conv_x = tvdConvection1D(u_here, v_mm, v_m, v_c, v_p, dx);
+    } else {
+        conv_x = tvdConvection1D(u_here, v_pp, v_p, v_c, v_m, dx);
+    }
+
+    if (v_here >= 0) {
+        conv_y = tvdConvection1D(v_here, v_jmm, v_jm, v_jc, v_jp, dy);
+    } else {
+        conv_y = tvdConvection1D(v_here, v_jpp, v_jp, v_jc, v_jm, dy);
+    }
+
+    return conv_x + conv_y;
 }
 
 double SolverBase::diffusionU(const Grid& grid, int i, int j) const {
