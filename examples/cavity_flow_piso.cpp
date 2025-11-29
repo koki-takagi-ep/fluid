@@ -9,15 +9,18 @@
 #include "PisoSolver.hpp"
 #include "BoundaryCondition.hpp"
 #include "CSVWriter.hpp"
+#include "Constants.hpp"
 #include <iostream>
 #include <cstdlib>
 #include <chrono>
 
+using namespace fluid::constants;
+
 int main(int argc, char* argv[]) {
     // 物理パラメータ（SI単位系）
     double L = 0.01;           // キャビティサイズ [m] (10 mm)
-    double rho = 1000.0;       // 密度 [kg/m³] (水)
-    double mu = 1.0e-3;        // 粘性係数 [Pa·s] (水)
+    double rho = WATER_DENSITY;       // 密度 [kg/m³] (水)
+    double mu = WATER_DYNAMIC_VISCOSITY;  // 粘性係数 [Pa·s] (水)
     double nu = mu / rho;      // 動粘性係数 [m²/s]
     double U_lid = 0.01;       // 上壁速度 [m/s] (10 mm/s)
 
@@ -27,7 +30,7 @@ int main(int argc, char* argv[]) {
     // 計算パラメータ
     int nx = 64;               // 格子数
     int ny = 64;
-    double endTime = 10.0;     // 終了時刻 [s]
+    double endTime = DEFAULT_CAVITY_END_TIME;  // 終了時刻 [s]
     int nCorrectors = 2;       // PISO補正ステップ数
 
     // コマンドライン引数の処理
@@ -58,7 +61,7 @@ int main(int argc, char* argv[]) {
     // PISO法ソルバーの作成（物理パラメータを指定）
     fluid::PisoSolver solver(rho, nu, 0.001, nCorrectors);
     solver.autoTimeStep = true;
-    solver.cfl = 0.5;
+    solver.cfl = DEFAULT_CFL;
 
     // 境界条件（キャビティ流れ）
     fluid::BoundaryCondition bc = fluid::BoundaryCondition::cavityFlow(U_lid);

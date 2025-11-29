@@ -10,11 +10,14 @@
 #include "BoundaryCondition.hpp"
 #include "CSVWriter.hpp"
 #include "FluxLimiter.hpp"
+#include "Constants.hpp"
 #include <iostream>
 #include <iomanip>
 #include <chrono>
 #include <vector>
 #include <string>
+
+using namespace fluid::constants;
 
 struct BenchmarkResult {
     std::string name;
@@ -28,8 +31,8 @@ BenchmarkResult runBenchmark(fluid::LimiterType limiterType, const std::string& 
                               int nx, double U_lid, double endTime) {
     // 物理パラメータ
     double L = 0.01;           // キャビティサイズ [m]
-    double rho = 1000.0;       // 密度 [kg/m³]
-    double mu = 1.0e-3;        // 粘性係数 [Pa·s]
+    double rho = WATER_DENSITY;       // 密度 [kg/m³]
+    double mu = WATER_DYNAMIC_VISCOSITY;  // 粘性係数 [Pa·s]
     double nu = mu / rho;      // 動粘性係数 [m²/s]
 
     // 格子の作成
@@ -38,7 +41,7 @@ BenchmarkResult runBenchmark(fluid::LimiterType limiterType, const std::string& 
     // ソルバーの作成
     fluid::Solver solver(rho, nu);
     solver.autoTimeStep = true;
-    solver.cfl = 0.5;
+    solver.cfl = DEFAULT_CFL;
     solver.setLimiter(limiterType);
 
     // 境界条件
@@ -98,7 +101,7 @@ int main(int argc, char* argv[]) {
     // パラメータ
     int nx = 64;
     double U_lid = 0.01;
-    double endTime = 10.0;
+    double endTime = DEFAULT_CAVITY_END_TIME;
 
     if (argc > 1) nx = std::atoi(argv[1]);
     if (argc > 2) U_lid = std::atof(argv[2]);
