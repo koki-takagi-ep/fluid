@@ -44,6 +44,10 @@ cd build
 # solver: projection, simple, piso
 # limiter: none, minmod, superbee, vanleer, mc
 # Example: ./channel_flow_convergence projection vanleer 128 32 0.015 5.0 output/conv_test
+
+# TVD scheme benchmark (compares all limiters)
+./tvd_benchmark [nx] [U_lid] [end_time]
+# Example: ./tvd_benchmark 64 0.01 10.0
 ```
 
 ## Visualization (from build directory)
@@ -89,9 +93,11 @@ SolverBase (abstract)
 ### Constants
 
 Numerical constants are defined in `include/Constants.hpp` to avoid magic numbers:
-- `ATMOSPHERIC_PRESSURE`, `WATER_DENSITY`, `WATER_KINEMATIC_VISCOSITY`
-- `DEFAULT_SOR_OMEGA`, `DEFAULT_PRESSURE_TOLERANCE`
-- `LAPLACIAN_CENTER_COEFF`, `FOUR_POINT_AVERAGE_COEFF`
+- Physical: `WATER_DENSITY`, `WATER_DYNAMIC_VISCOSITY`, `WATER_KINEMATIC_VISCOSITY`
+- Solver: `DEFAULT_CFL`, `DEFAULT_SOR_OMEGA`, `DEFAULT_PRESSURE_TOLERANCE`
+- SIMPLE: `DEFAULT_VELOCITY_RELAXATION`, `DEFAULT_PRESSURE_RELAXATION`
+- Simulation: `DEFAULT_CAVITY_END_TIME`, `DEFAULT_CHANNEL_END_TIME`
+- Discretization: `LAPLACIAN_CENTER_COEFF`, `POISEUILLE_MEAN_MAX_RATIO`
 
 ### Simulation Loop
 
@@ -176,6 +182,7 @@ numpy, matplotlib, pandas, scipy
 | `visualize.py` | Plot velocity/pressure fields, streamlines (SVG/PDF/PNG output) |
 | `validation.py` | Compare with Ghia et al. (1982) benchmark data |
 | `convergence.py` | Analyze solver convergence history |
+| `convergence_all_schemes.py` | Grid convergence study for multiple solver/limiter combinations |
 
 ## Git/PR ルール
 
