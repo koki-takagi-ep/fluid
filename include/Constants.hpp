@@ -68,5 +68,41 @@ constexpr double FOUR_POINT_AVERAGE_COEFF = 0.25;
 /// 2点補間の係数
 constexpr double INTERPOLATION_COEFF = 0.5;
 
+//==============================================================================
+// SIMPLE法パラメータ
+//==============================================================================
+
+/// 速度の緩和係数（デフォルト）
+constexpr double DEFAULT_VELOCITY_RELAXATION = 0.7;
+
+/// 圧力の緩和係数（デフォルト）
+constexpr double DEFAULT_PRESSURE_RELAXATION = 0.3;
+
+/// SIMPLE法の最大外部反復回数
+constexpr int DEFAULT_SIMPLE_MAX_ITERATIONS = 100;
+
+/// SIMPLE法の収束判定閾値
+constexpr double DEFAULT_SIMPLE_CONVERGENCE_TOL = 1e-4;
+
+//==============================================================================
+// 物理パラメータ（流体力学）
+//==============================================================================
+
+/// 水の動粘度 [Pa·s]
+constexpr double WATER_DYNAMIC_VISCOSITY = 1.0e-3;
+
+/// Hagen-Poiseuille流れの平均速度/最大速度比（2/3）
+constexpr double POISEUILLE_MEAN_MAX_RATIO = 2.0 / 3.0;
+
+//==============================================================================
+// デフォルトシミュレーションパラメータ
+//==============================================================================
+
+/// デフォルトのキャビティ流れ終了時間 [s]
+constexpr double DEFAULT_CAVITY_END_TIME = 10.0;
+
+/// デフォルトのチャネル流れ終了時間 [s]
+constexpr double DEFAULT_CHANNEL_END_TIME = 5.0;
+
 } // namespace constants
 } // namespace fluid

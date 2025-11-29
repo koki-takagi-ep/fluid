@@ -15,11 +15,14 @@
 #include "BoundaryCondition.hpp"
 #include "CSVWriter.hpp"
 #include "FluxLimiter.hpp"
+#include "Constants.hpp"
 #include <iostream>
 #include <cstdlib>
 #include <chrono>
 #include <memory>
 #include <string>
+
+using namespace fluid::constants;
 
 int main(int argc, char* argv[]) {
     // Default parameters
@@ -43,10 +46,10 @@ int main(int argc, char* argv[]) {
     // Physical parameters (SI units)
     double L = 0.003;          // Channel height [m] (3 mm)
     double Lx = 0.03;          // Channel length [m] (30 mm)
-    double rho = 1000.0;       // Density [kg/m³]
-    double mu = 1.0e-3;        // Dynamic viscosity [Pa·s]
+    double rho = WATER_DENSITY;       // Density [kg/m³]
+    double mu = WATER_DYNAMIC_VISCOSITY;  // Dynamic viscosity [Pa·s]
     double nu = mu / rho;      // Kinematic viscosity [m²/s]
-    double U_mean = (2.0/3.0) * U_max;
+    double U_mean = POISEUILLE_MEAN_MAX_RATIO * U_max;
     double Re = U_mean * L / nu;
 
     // Parse limiter type
@@ -74,7 +77,7 @@ int main(int argc, char* argv[]) {
     }
 
     solver->autoTimeStep = true;
-    solver->cfl = 0.5;
+    solver->cfl = DEFAULT_CFL;
     solver->setLimiter(limiterType);
 
     // Boundary conditions

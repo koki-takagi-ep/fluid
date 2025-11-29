@@ -9,19 +9,22 @@
 #include "PisoSolver.hpp"
 #include "BoundaryCondition.hpp"
 #include "CSVWriter.hpp"
+#include "Constants.hpp"
 #include <iostream>
 #include <cstdlib>
 #include <chrono>
+
+using namespace fluid::constants;
 
 int main(int argc, char* argv[]) {
     // 物理パラメータ（SI単位系）
     double L = 0.003;          // チャネル高さ [m] (3 mm)
     double Lx = 0.03;          // チャネル長さ [m] (30 mm)
-    double rho = 1000.0;       // 密度 [kg/m³] (水)
-    double mu = 1.0e-3;        // 粘性係数 [Pa·s] (水)
+    double rho = WATER_DENSITY;       // 密度 [kg/m³] (水)
+    double mu = WATER_DYNAMIC_VISCOSITY;  // 粘性係数 [Pa·s] (水)
     double nu = mu / rho;      // 動粘性係数 [m²/s]
     double U_max = 0.015;      // 最大流速（中心速度） [m/s] (15 mm/s)
-    double U_mean = (2.0/3.0) * U_max;  // 平均流速 [m/s]
+    double U_mean = POISEUILLE_MEAN_MAX_RATIO * U_max;  // 平均流速 [m/s]
 
     // レイノルズ数
     double Re = U_mean * L / nu;
@@ -39,7 +42,7 @@ int main(int argc, char* argv[]) {
     if (argc > 4) endTime = std::atof(argv[4]);
     if (argc > 5) nCorrectors = std::atoi(argv[5]);
 
-    U_mean = (2.0/3.0) * U_max;
+    U_mean = POISEUILLE_MEAN_MAX_RATIO * U_max;
     Re = U_mean * L / nu;
 
     std::cout << "=== Channel Flow - PISO (Hagen-Poiseuille) ===" << std::endl;
@@ -64,7 +67,7 @@ int main(int argc, char* argv[]) {
     // PISO法ソルバーの作成
     fluid::PisoSolver solver(rho, nu, 0.001, nCorrectors);
     solver.autoTimeStep = true;
-    solver.cfl = 0.5;
+    solver.cfl = DEFAULT_CFL;
 
     // 境界条件（放物線流入 = Hagen-Poiseuille）
     fluid::BoundaryCondition bc = fluid::BoundaryCondition::channelFlowParabolic(U_max);
