@@ -11,7 +11,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator
+from matplotlib.ticker import MultipleLocator
 
 
 def get_data_dir(output_dir: str) -> str:
@@ -53,23 +53,19 @@ def load_field(filepath: str, nx: int, ny: int) -> dict:
     return {'time': time, 'u': u, 'v': v, 'magnitude': mag}
 
 
-def setup_axis_style(ax, xlabel='', ylabel='', title=''):
-    """軸のスタイルを設定"""
-    ax.set_xlabel(xlabel, fontsize=11, fontweight='bold')
-    ax.set_ylabel(ylabel, fontsize=11, fontweight='bold')
-    if title:
-        ax.set_title(title, fontsize=12, fontweight='bold')
+def setup_axis_style(ax):
+    """軸のスタイルを設定（内向き目盛り）"""
+    ax.tick_params(axis='both', which='major', direction='in', length=6, width=1,
+                   labelsize=10, top=True, right=True)
+    ax.tick_params(axis='both', which='minor', direction='in', length=3, width=0.8,
+                   top=True, right=True)
 
-    ax.xaxis.set_ticks_position('both')
-    ax.yaxis.set_ticks_position('both')
-    ax.tick_params(which='major', direction='out', length=6, width=1, labelsize=10)
-    ax.tick_params(which='minor', direction='out', length=3, width=0.5)
-    ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-    ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
 
 
 def plot_convergence(output_dir: str, save_file: str = None, vel_unit='mm/s'):
-    """収束確認グラフを作成"""
+    """収束確認グラフを作成（正方形パネル）"""
     metadata = load_metadata(output_dir)
     nx, ny = int(metadata['nx']), int(metadata['ny'])
 
@@ -107,54 +103,63 @@ def plot_convergence(output_dir: str, save_file: str = None, vel_unit='mm/s'):
             changes.append(change)
         prev_mag = field['magnitude'].copy()
 
-    # プロット作成
-    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+    # プロット作成（2x2の正方形パネル）
+    fig, axes = plt.subplots(2, 2, figsize=(10, 10))
 
     # 左上: 最大速度の時間発展
     ax = axes[0, 0]
-    ax.plot(times, max_velocities, 'b-', linewidth=1.5, marker='o', markersize=4)
-    setup_axis_style(ax, xlabel='Time (s)', ylabel=f'Max velocity ({vel_unit})',
-                     title='Maximum Velocity vs Time')
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.plot(times, max_velocities, 'b-', linewidth=1, marker='o', markersize=4)
+    ax.set_xlabel('Time (s)', fontsize=11)
+    ax.set_ylabel(f'Max velocity ({vel_unit})', fontsize=11)
+    ax.set_title('Maximum Velocity vs Time', fontsize=12)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 右上: 中心線速度の時間発展
     ax = axes[0, 1]
-    ax.plot(times, centerline_u, 'r-', linewidth=1.5, marker='s', markersize=4)
-    setup_axis_style(ax, xlabel='Time (s)', ylabel=f'Centerline $u$ ({vel_unit})',
-                     title='Centerline Velocity (near exit)')
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.plot(times, centerline_u, 'r-', linewidth=1, marker='s', markersize=4)
+    ax.set_xlabel('Time (s)', fontsize=11)
+    ax.set_ylabel(f'Centerline $u$ ({vel_unit})', fontsize=11)
+    ax.set_title('Centerline Velocity (near exit)', fontsize=12)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 左下: 変化量の時間発展（収束確認）
     ax = axes[1, 0]
     if len(changes) > 0:
-        ax.semilogy(times[1:], changes, 'g-', linewidth=1.5, marker='^', markersize=4)
-        ax.set_xlabel('Time (s)', fontsize=11, fontweight='bold')
-        ax.set_ylabel(f'Max change ({vel_unit})', fontsize=11, fontweight='bold')
-        ax.set_title('Velocity Change (Convergence)', fontsize=12, fontweight='bold')
-        ax.tick_params(which='major', direction='out', length=6, width=1, labelsize=10)
-        ax.grid(True, alpha=0.3, linestyle='--', which='both')
+        ax.semilogy(times[1:], changes, 'g-', linewidth=1, marker='^', markersize=4)
+        ax.set_xlabel('Time (s)', fontsize=11)
+        ax.set_ylabel(f'Max change ({vel_unit})', fontsize=11)
+        ax.set_title('Velocity Change (Convergence)', fontsize=12)
+        setup_axis_style(ax)
     else:
         ax.text(0.5, 0.5, 'Not enough data', ha='center', va='center', transform=ax.transAxes)
+    ax.set_box_aspect(1)
 
     # 右下: 定常状態への収束率
     ax = axes[1, 1]
     if len(max_velocities) > 1:
         final_vel = max_velocities[-1]
         convergence_ratio = [abs(v - final_vel) / final_vel * 100 for v in max_velocities]
-        ax.semilogy(times, convergence_ratio, 'm-', linewidth=1.5, marker='d', markersize=4)
-        ax.set_xlabel('Time (s)', fontsize=11, fontweight='bold')
-        ax.set_ylabel('Deviation from final (%)', fontsize=11, fontweight='bold')
-        ax.set_title('Convergence to Steady State', fontsize=12, fontweight='bold')
-        ax.tick_params(which='major', direction='out', length=6, width=1, labelsize=10)
-        ax.grid(True, alpha=0.3, linestyle='--', which='both')
+        ax.semilogy(times, convergence_ratio, 'm-', linewidth=1, marker='d', markersize=4)
+        ax.set_xlabel('Time (s)', fontsize=11)
+        ax.set_ylabel('Deviation from final (%)', fontsize=11)
+        ax.set_title('Convergence to Steady State', fontsize=12)
+        setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     plt.tight_layout()
 
     if save_file is None:
         save_file = os.path.join(get_figures_dir(output_dir), 'convergence.pdf')
 
-    plt.savefig(save_file, bbox_inches='tight')
-    print(f"Convergence plot saved to {save_file}")
+    # 保存（複数フォーマット）
+    base_path = os.path.splitext(save_file)[0]
+    for ext in ['.svg', '.pdf', '.png']:
+        out_file = base_path + ext
+        dpi = 300 if ext == '.png' else None
+        plt.savefig(out_file, bbox_inches='tight', dpi=dpi)
+        print(f"Saved: {out_file}")
 
     # 収束情報を表示
     print(f"\n=== Convergence Summary ===")

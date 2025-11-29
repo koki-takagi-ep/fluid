@@ -150,8 +150,8 @@ def main():
 
     U_lid = 0.01  # m/s
 
-    # フィギュアサイズ（ユーザー指定に近いサイズ）
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    # フィギュアサイズ（正方形パネル）
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
     rms_errors = {}
 
@@ -189,6 +189,7 @@ def main():
     ax.xaxis.set_minor_locator(MultipleLocator(0.1))
     ax.yaxis.set_minor_locator(MultipleLocator(0.1))
     setup_axes_style(ax)
+    ax.set_box_aspect(1)
 
     # 右: v-velocity along horizontal centerline
     ax = axes[1]
@@ -220,6 +221,7 @@ def main():
     ax.xaxis.set_minor_locator(MultipleLocator(0.1))
     ax.yaxis.set_minor_locator(MultipleLocator(0.1))
     setup_axes_style(ax)
+    ax.set_box_aspect(1)
 
     fig.suptitle('TVD Limiter Comparison: Cavity Flow Validation (Re = 100)',
                  fontsize=13, y=0.98)

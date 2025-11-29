@@ -13,7 +13,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.ticker import AutoMinorLocator, MultipleLocator
+from matplotlib.ticker import MultipleLocator
 
 
 # Ghia et al. (1982) のベンチマークデータ
@@ -150,23 +150,19 @@ def extract_centerline_profiles(data: dict, U_lid: float = 1.0):
     }
 
 
-def setup_axis_style(ax, xlabel='', ylabel='', title=''):
-    """軸のスタイルを設定（論文調）"""
-    ax.set_xlabel(xlabel, fontsize=11, fontweight='bold')
-    ax.set_ylabel(ylabel, fontsize=11, fontweight='bold')
-    if title:
-        ax.set_title(title, fontsize=12, fontweight='bold')
+def setup_axis_style(ax):
+    """軸のスタイルを設定（内向き目盛り）"""
+    ax.tick_params(axis='both', which='major', direction='in', length=6, width=1,
+                   labelsize=10, top=True, right=True)
+    ax.tick_params(axis='both', which='minor', direction='in', length=3, width=0.8,
+                   top=True, right=True)
 
-    ax.xaxis.set_ticks_position('both')
-    ax.yaxis.set_ticks_position('both')
-    ax.tick_params(which='major', direction='in', length=6, width=1, labelsize=10)
-    ax.tick_params(which='minor', direction='in', length=3, width=0.5)
-    ax.xaxis.set_minor_locator(AutoMinorLocator(5))
-    ax.yaxis.set_minor_locator(AutoMinorLocator(5))
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
 
 
 def plot_validation(output_dir: str, Re: int, U_lid: float, save_file: str = None):
-    """検証プロットを作成（単一ケース）"""
+    """検証プロットを作成（単一ケース、正方形グラフ）"""
 
     # デフォルトの出力先はfiguresディレクトリ
     if save_file is None:
@@ -186,47 +182,58 @@ def plot_validation(output_dir: str, Re: int, U_lid: float, save_file: str = Non
     ghia_u = GHIA_DATA_U[Re]
     ghia_v = GHIA_DATA_V[Re]
 
-    # プロット作成
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4.5))
+    # プロット作成（正方形の2パネル）
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
     # 左: 垂直中心線での u 速度
     ax = axes[0]
     ax.plot(profiles['u_vertical'], profiles['y_vertical'],
-            'b-', linewidth=1.5, label='Present (CFD)')
+            'b-', linewidth=1, label='Present (CFD)', zorder=2)
     ax.plot(ghia_u['u'], ghia_u['y'],
-            'ko', markersize=6, markerfacecolor='none', markeredgewidth=1.5,
-            label='Ghia et al. (1982)')
+            'ko', markersize=6, label='Ghia et al. (1982)', zorder=10)
 
-    setup_axis_style(ax, xlabel=r'$u / U_{\rm lid}$', ylabel=r'$y / L$',
-                     title=f'Vertical centerline ($x/L = 0.5$)')
-    ax.set_xlim(-0.5, 1.1)
+    ax.set_xlabel(r'$u/U_{lid}$', fontsize=11)
+    ax.set_ylabel(r'$y/L$', fontsize=11)
+    ax.set_title(r'$u$-velocity along vertical centerline', fontsize=12)
+    ax.set_xlim(-0.4, 1.0)
     ax.set_ylim(0, 1)
-    ax.legend(loc='lower right', fontsize=9, frameon=True, edgecolor='black', fancybox=False)
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.legend(loc='lower right', fontsize=8, framealpha=0.9)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 右: 水平中心線での v 速度
     ax = axes[1]
     ax.plot(profiles['x_horizontal'], profiles['v_horizontal'],
-            'b-', linewidth=1.5, label='Present (CFD)')
+            'b-', linewidth=1, label='Present (CFD)', zorder=2)
     ax.plot(ghia_v['x'], ghia_v['v'],
-            'ko', markersize=6, markerfacecolor='none', markeredgewidth=1.5,
-            label='Ghia et al. (1982)')
+            'ko', markersize=6, label='Ghia et al. (1982)', zorder=10)
 
-    setup_axis_style(ax, xlabel=r'$x / L$', ylabel=r'$v / U_{\rm lid}$',
-                     title=f'Horizontal centerline ($y/L = 0.5$)')
+    ax.set_xlabel(r'$x/L$', fontsize=11)
+    ax.set_ylabel(r'$v/U_{lid}$', fontsize=11)
+    ax.set_title(r'$v$-velocity along horizontal centerline', fontsize=12)
     ax.set_xlim(0, 1)
     ax.set_ylim(-0.5, 0.4)
-    ax.legend(loc='upper right', fontsize=9, frameon=True, edgecolor='black', fancybox=False)
-    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.legend(loc='upper right', fontsize=8, framealpha=0.9)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 全体タイトル
     fig.suptitle(f'Lid-Driven Cavity Flow Validation (Re = {Re})',
-                 fontsize=13, fontweight='bold', y=1.02)
+                 fontsize=13, y=0.98)
 
     plt.tight_layout()
 
-    plt.savefig(save_file, bbox_inches='tight')
-    print(f"Validation plot saved to {save_file}")
+    # 保存
+    base_path = os.path.splitext(save_file)[0]
+    for ext in ['.svg', '.pdf', '.png']:
+        out_file = base_path + ext
+        dpi = 300 if ext == '.png' else None
+        plt.savefig(out_file, bbox_inches='tight', dpi=dpi)
+        print(f"Saved: {out_file}")
 
     # 誤差を計算
     compute_error(profiles, ghia_u, ghia_v, Re)
@@ -250,12 +257,12 @@ def plot_multi_case_validation(output_dirs: list, labels: list, Re: int, U_lid: 
     ghia_u = GHIA_DATA_U[Re]
     ghia_v = GHIA_DATA_V[Re]
 
-    # カラーパレット（異なるケース用）
-    colors = plt.cm.tab10.colors
+    # カラーパレット
+    colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd']
     linestyles = ['-', '--', '-.', ':']
 
     # プロット作成（正方形の2パネル）
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
     # 各ケースのデータを読み込みプロット
     for idx, (output_dir, label) in enumerate(zip(output_dirs, labels)):
@@ -268,11 +275,11 @@ def plot_multi_case_validation(output_dirs: list, labels: list, Re: int, U_lid: 
 
             # 左: 垂直中心線での u 速度
             axes[0].plot(profiles['u_vertical'], profiles['y_vertical'],
-                        color=color, linestyle=ls, linewidth=1.5, label=label)
+                        color=color, linestyle=ls, linewidth=1, label=label, zorder=3+idx)
 
             # 右: 水平中心線での v 速度
             axes[1].plot(profiles['x_horizontal'], profiles['v_horizontal'],
-                        color=color, linestyle=ls, linewidth=1.5, label=label)
+                        color=color, linestyle=ls, linewidth=1, label=label, zorder=3+idx)
 
             # 誤差計算
             from scipy import interpolate
@@ -294,35 +301,39 @@ def plot_multi_case_validation(output_dirs: list, labels: list, Re: int, U_lid: 
 
     # Ghiaデータを黒ドットでプロット（最後に描画して前面に）
     axes[0].plot(ghia_u['u'], ghia_u['y'],
-                'ko', markersize=7, markerfacecolor='none', markeredgewidth=1.5,
-                label='Ghia et al. (1982)', zorder=10)
+                'ko', markersize=6, label='Ghia et al. (1982)', zorder=10)
     axes[1].plot(ghia_v['x'], ghia_v['v'],
-                'ko', markersize=7, markerfacecolor='none', markeredgewidth=1.5,
-                label='Ghia et al. (1982)', zorder=10)
+                'ko', markersize=6, label='Ghia et al. (1982)', zorder=10)
 
     # 左パネルのスタイル
     ax = axes[0]
-    setup_axis_style(ax, xlabel=r'$u / U_{\rm lid}$', ylabel=r'$y / L$',
-                     title=f'Vertical centerline ($x/L = 0.5$)')
-    ax.set_xlim(-0.5, 1.1)
+    ax.set_xlabel(r'$u/U_{lid}$', fontsize=11)
+    ax.set_ylabel(r'$y/L$', fontsize=11)
+    ax.set_title(r'$u$-velocity along vertical centerline', fontsize=12)
+    ax.set_xlim(-0.4, 1.0)
     ax.set_ylim(0, 1)
-    ax.legend(loc='lower right', fontsize=8, frameon=True, edgecolor='black', fancybox=False)
-    ax.grid(True, alpha=0.3, linestyle='--')
-    ax.set_aspect('equal', adjustable='box')
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.legend(loc='lower right', fontsize=8, framealpha=0.9)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 右パネルのスタイル
     ax = axes[1]
-    setup_axis_style(ax, xlabel=r'$x / L$', ylabel=r'$v / U_{\rm lid}$',
-                     title=f'Horizontal centerline ($y/L = 0.5$)')
+    ax.set_xlabel(r'$x/L$', fontsize=11)
+    ax.set_ylabel(r'$v/U_{lid}$', fontsize=11)
+    ax.set_title(r'$v$-velocity along horizontal centerline', fontsize=12)
     ax.set_xlim(0, 1)
-    ax.set_ylim(-0.6, 0.5)
-    ax.legend(loc='upper right', fontsize=8, frameon=True, edgecolor='black', fancybox=False)
-    ax.grid(True, alpha=0.3, linestyle='--')
-    ax.set_aspect('equal', adjustable='box')
+    ax.set_ylim(-0.5, 0.4)
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+    ax.legend(loc='upper right', fontsize=8, framealpha=0.9)
+    setup_axis_style(ax)
+    ax.set_box_aspect(1)
 
     # 全体タイトル
     fig.suptitle(f'Lid-Driven Cavity Flow Validation (Re = {Re})',
-                 fontsize=13, fontweight='bold', y=1.02)
+                 fontsize=13, y=0.98)
 
     plt.tight_layout()
 
@@ -333,9 +344,9 @@ def plot_multi_case_validation(output_dirs: list, labels: list, Re: int, U_lid: 
     base_path = os.path.splitext(save_file)[0]
     for ext in ['.svg', '.pdf', '.png']:
         out_file = base_path + ext
-        dpi = 600 if ext == '.png' else None
+        dpi = 300 if ext == '.png' else None
         plt.savefig(out_file, bbox_inches='tight', dpi=dpi)
-        print(f"Figure saved to {out_file}")
+        print(f"Saved: {out_file}")
 
 
 def compute_error(profiles: dict, ghia_u: dict, ghia_v: dict, Re: int):
@@ -366,80 +377,6 @@ def compute_error(profiles: dict, ghia_u: dict, ghia_v: dict, Re: int):
     print(f"  RMS error:  {v_error:.6f}")
     print(f"  Max error:  {v_max_error:.6f}")
     print("=" * 40)
-
-
-def plot_multi_re_validation(results: dict, save_file: str = None):
-    """複数Reでの検証プロットを作成"""
-
-    fig, axes = plt.subplots(2, 2, figsize=(10, 9))
-
-    colors = {100: 'blue', 400: 'green', 1000: 'red'}
-    markers = {100: 'o', 400: 's', 1000: '^'}
-
-    # 左上: 垂直中心線 u速度
-    ax = axes[0, 0]
-    for Re, data in results.items():
-        if Re in GHIA_DATA_U:
-            ax.plot(data['profiles']['u_vertical'], data['profiles']['y_vertical'],
-                    '-', color=colors[Re], linewidth=1.5, label=f'CFD Re={Re}')
-            ax.plot(GHIA_DATA_U[Re]['u'], GHIA_DATA_U[Re]['y'],
-                    markers[Re], color=colors[Re], markersize=5,
-                    markerfacecolor='none', markeredgewidth=1.2)
-
-    setup_axis_style(ax, xlabel=r'$u / U_{\rm lid}$', ylabel=r'$y / L$',
-                     title='Vertical centerline')
-    ax.set_xlim(-0.5, 1.1)
-    ax.set_ylim(0, 1)
-    ax.legend(loc='lower right', fontsize=8)
-    ax.grid(True, alpha=0.3, linestyle='--')
-
-    # 右上: 水平中心線 v速度
-    ax = axes[0, 1]
-    for Re, data in results.items():
-        if Re in GHIA_DATA_V:
-            ax.plot(data['profiles']['x_horizontal'], data['profiles']['v_horizontal'],
-                    '-', color=colors[Re], linewidth=1.5, label=f'CFD Re={Re}')
-            ax.plot(GHIA_DATA_V[Re]['x'], GHIA_DATA_V[Re]['v'],
-                    markers[Re], color=colors[Re], markersize=5,
-                    markerfacecolor='none', markeredgewidth=1.2)
-
-    setup_axis_style(ax, xlabel=r'$x / L$', ylabel=r'$v / U_{\rm lid}$',
-                     title='Horizontal centerline')
-    ax.set_xlim(0, 1)
-    ax.legend(loc='upper right', fontsize=8)
-    ax.grid(True, alpha=0.3, linestyle='--')
-
-    # 凡例用のダミープロット
-    ax = axes[1, 0]
-    ax.plot([], [], 'k-', linewidth=1.5, label='Present (CFD)')
-    ax.plot([], [], 'ko', markersize=6, markerfacecolor='none',
-            markeredgewidth=1.5, label='Ghia et al. (1982)')
-    ax.legend(loc='center', fontsize=11, frameon=True)
-    ax.axis('off')
-    ax.set_title('Legend', fontsize=12, fontweight='bold')
-
-    # 右下: 誤差のまとめ
-    ax = axes[1, 1]
-    ax.axis('off')
-
-    error_text = "Validation Summary\n" + "=" * 30 + "\n\n"
-    for Re, data in results.items():
-        error_text += f"Re = {Re}:\n"
-        error_text += f"  u RMS error: {data['u_rms']:.4f}\n"
-        error_text += f"  v RMS error: {data['v_rms']:.4f}\n\n"
-
-    ax.text(0.1, 0.9, error_text, transform=ax.transAxes, fontsize=10,
-            verticalalignment='top', fontfamily='monospace',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-    ax.set_title('Error Analysis', fontsize=12, fontweight='bold')
-
-    plt.tight_layout()
-
-    if save_file:
-        plt.savefig(save_file, bbox_inches='tight')
-        print(f"Multi-Re validation plot saved to {save_file}")
-    else:
-        plt.show()
 
 
 if __name__ == '__main__':
