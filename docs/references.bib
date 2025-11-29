@@ -1,0 +1,464 @@
+% ==============================================================================
+% 非圧縮性流体の数値スキーム - 文献リスト
+% Generated: 2024
+% ==============================================================================
+
+% ==============================================================================
+% 古典的手法 (1960s-1980s)
+% ==============================================================================
+
+@article{Chorin1968,
+  author    = {Chorin, Alexandre Joel},
+  title     = {Numerical solution of the {Navier-Stokes} equations},
+  journal   = {Mathematics of Computation},
+  volume    = {22},
+  number    = {104},
+  pages     = {745--762},
+  year      = {1968},
+  doi       = {10.1090/S0025-5718-1968-0242392-2},
+  note      = {Projection法の原論文}
+}
+
+@article{Temam1968,
+  author    = {Temam, Roger},
+  title     = {Une m{\'e}thode d'approximation de la solution des {\'e}quations de {Navier-Stokes}},
+  journal   = {Bulletin de la Soci{\'e}t{\'e} Math{\'e}matique de France},
+  volume    = {96},
+  pages     = {115--152},
+  year      = {1968},
+  note      = {Projection法をChorinと独立に提案}
+}
+
+@article{PatankarSpalding1972,
+  author    = {Patankar, Suhas V. and Spalding, D. Brian},
+  title     = {A calculation procedure for heat, mass and momentum transfer in three-dimensional parabolic flows},
+  journal   = {International Journal of Heat and Mass Transfer},
+  volume    = {15},
+  number    = {10},
+  pages     = {1787--1806},
+  year      = {1972},
+  doi       = {10.1016/0017-9310(72)90054-3},
+  note      = {SIMPLE法の原論文}
+}
+
+@article{Issa1986,
+  author    = {Issa, R. I.},
+  title     = {Solution of the implicitly discretised fluid flow equations by operator-splitting},
+  journal   = {Journal of Computational Physics},
+  volume    = {62},
+  number    = {1},
+  pages     = {40--65},
+  year      = {1986},
+  doi       = {10.1016/0021-9991(86)90099-9},
+  note      = {PISO法の原論文}
+}
+
+@article{KimMoin1985,
+  author    = {Kim, John and Moin, Parviz},
+  title     = {Application of a fractional-step method to incompressible {Navier-Stokes} equations},
+  journal   = {Journal of Computational Physics},
+  volume    = {59},
+  number    = {2},
+  pages     = {308--323},
+  year      = {1985},
+  doi       = {10.1016/0021-9991(85)90148-2},
+  note      = {Fractional step法の改良版、境界条件の改善}
+}
+
+@article{HarlowWelch1965,
+  author    = {Harlow, Francis H. and Welch, J. Eddie},
+  title     = {Numerical calculation of time-dependent viscous incompressible flow of fluid with free surface},
+  journal   = {Physics of Fluids},
+  volume    = {8},
+  number    = {12},
+  pages     = {2182--2189},
+  year      = {1965},
+  doi       = {10.1063/1.1761178},
+  note      = {MAC法（Marker-and-Cell）の原論文、スタガード格子}
+}
+
+% ==============================================================================
+% SIMPLE系手法の拡張 (1980s)
+% ==============================================================================
+
+@article{Patankar1980,
+  author    = {Patankar, Suhas V.},
+  title     = {Numerical Heat Transfer and Fluid Flow},
+  publisher = {Hemisphere Publishing Corporation},
+  year      = {1980},
+  address   = {Washington, DC},
+  isbn      = {978-0891165224},
+  note      = {SIMPLER法を含む教科書}
+}
+
+@article{VanDoormaal1984,
+  author    = {Van Doormaal, J. P. and Raithby, G. D.},
+  title     = {Enhancements of the {SIMPLE} method for predicting incompressible fluid flows},
+  journal   = {Numerical Heat Transfer},
+  volume    = {7},
+  number    = {2},
+  pages     = {147--163},
+  year      = {1984},
+  doi       = {10.1080/01495728408961817},
+  note      = {SIMPLEC法の原論文}
+}
+
+@article{Jang1986,
+  author    = {Jang, D. S. and Jetli, R. and Acharya, S.},
+  title     = {Comparison of the {PISO}, {SIMPLER}, and {SIMPLEC} algorithms for the treatment of the pressure-velocity coupling in steady flow problems},
+  journal   = {Numerical Heat Transfer},
+  volume    = {10},
+  number    = {3},
+  pages     = {209--228},
+  year      = {1986},
+  doi       = {10.1080/10407788608913517},
+  note      = {PISO/SIMPLER/SIMPLEC比較研究}
+}
+
+% ==============================================================================
+% Projection法のレビューと改良 (2000s)
+% ==============================================================================
+
+@article{GuermondMinevShen2006,
+  author    = {Guermond, J.-L. and Minev, P. and Shen, Jie},
+  title     = {An overview of projection methods for incompressible flows},
+  journal   = {Computer Methods in Applied Mechanics and Engineering},
+  volume    = {195},
+  number    = {44--47},
+  pages     = {6011--6045},
+  year      = {2006},
+  doi       = {10.1016/j.cma.2005.10.010},
+  note      = {Projection法の包括的レビュー。圧力補正法・速度補正法・一貫分離法の3分類}
+}
+
+@article{GuermondShen2003,
+  author    = {Guermond, J.-L. and Shen, Jie},
+  title     = {Velocity-correction projection methods for incompressible flows},
+  journal   = {SIAM Journal on Numerical Analysis},
+  volume    = {41},
+  number    = {1},
+  pages     = {112--134},
+  year      = {2003},
+  doi       = {10.1137/S0036142901395400},
+  note      = {速度補正法（標準形・回転形）の提案}
+}
+
+@article{GuermondShen2004,
+  author    = {Guermond, J.-L. and Shen, Jie},
+  title     = {On the error estimates for the rotational pressure-correction projection methods},
+  journal   = {Mathematics of Computation},
+  volume    = {73},
+  number    = {248},
+  pages     = {1719--1737},
+  year      = {2004},
+  doi       = {10.1090/S0025-5718-03-01621-1},
+  note      = {回転形圧力補正法の誤差解析}
+}
+
+@article{TimmermanMinevVanDeVosse1996,
+  author    = {Timmermans, L. J. P. and Minev, P. D. and Van De Vosse, F. N.},
+  title     = {On the convergence of spectral approximations for the generalized {Stokes} problem},
+  journal   = {Journal of Computational Physics},
+  volume    = {125},
+  pages     = {191--207},
+  year      = {1996},
+  note      = {回転形圧力補正法の導入}
+}
+
+@article{VanKan1986,
+  author    = {Van Kan, J.},
+  title     = {A second-order accurate pressure-correction scheme for viscous incompressible flow},
+  journal   = {SIAM Journal on Scientific and Statistical Computing},
+  volume    = {7},
+  number    = {3},
+  pages     = {870--891},
+  year      = {1986},
+  doi       = {10.1137/0907059},
+  note      = {増分圧力補正法の提案}
+}
+
+% ==============================================================================
+% 完全陰解法・Newton法ベース (2000s-2020s)
+% ==============================================================================
+
+@article{Vierendeels1999,
+  author    = {Vierendeels, Jan and Riemslagh, Kris and Dick, Erik},
+  title     = {A multigrid semi-implicit line-method for viscous incompressible and low-{Mach}-number flows on high aspect ratio grids},
+  journal   = {Journal of Computational Physics},
+  volume    = {154},
+  number    = {2},
+  pages     = {310--341},
+  year      = {1999},
+  doi       = {10.1006/jcph.1999.6315},
+  note      = {完全結合型ソルバー}
+}
+
+@article{DarwishMoukalled2014,
+  author    = {Darwish, M. and Moukalled, F.},
+  title     = {A fully coupled {Navier-Stokes} solver for fluid flow at all speeds},
+  journal   = {Numerical Heat Transfer, Part B: Fundamentals},
+  volume    = {65},
+  number    = {5},
+  pages     = {410--431},
+  year      = {2014},
+  doi       = {10.1080/10407790.2013.869102},
+  note      = {全速度領域対応の完全結合ソルバー}
+}
+
+@article{ChenXue2021,
+  author    = {Chen, S. and Xue, W.},
+  title     = {Newton linearization of the {Navier-Stokes} equations for flow computations using a fully coupled finite volume method},
+  journal   = {Applied Mathematics and Computation},
+  volume    = {390},
+  pages     = {125641},
+  year      = {2021},
+  doi       = {10.1016/j.amc.2020.125641},
+  note      = {Newton線形化による完全結合有限体積法}
+}
+
+@article{BootlandWathen2024,
+  author    = {Bootland, N. and Wathen, A.},
+  title     = {A coupled block implicit solver for the incompressible {Navier-Stokes} equations on collocated grids},
+  journal   = {Computers \& Fluids},
+  volume    = {276},
+  pages     = {106279},
+  year      = {2024},
+  doi       = {10.1016/j.compfluid.2024.106279},
+  note      = {行列自由型完全結合法、SIMPLE比で10倍高速}
+}
+
+@article{ShadidTuminaro1997,
+  author    = {Shadid, John N. and Tuminaro, Ray S.},
+  title     = {An inexact {Newton} method for fully coupled solution of the {Navier-Stokes} equations with heat and mass transport},
+  journal   = {Journal of Computational Physics},
+  volume    = {137},
+  number    = {1},
+  pages     = {155--185},
+  year      = {1997},
+  doi       = {10.1006/jcph.1997.5798},
+  note      = {不完全Newton法による完全結合解法}
+}
+
+% ==============================================================================
+% 格子Boltzmann法 (2000s-2020s)
+% ==============================================================================
+
+@article{Chen1998,
+  author    = {Chen, Shiyi and Doolen, Gary D.},
+  title     = {Lattice {Boltzmann} method for fluid flows},
+  journal   = {Annual Review of Fluid Mechanics},
+  volume    = {30},
+  pages     = {329--364},
+  year      = {1998},
+  doi       = {10.1146/annurev.fluid.30.1.329},
+  note      = {格子Boltzmann法のレビュー}
+}
+
+@article{Kruger2017,
+  author    = {Kr{\"u}ger, Timm and Kusumaatmaja, Halim and Kuzmin, Alexandr and Shardt, Orest and Silva, Goncalo and Viggen, Erlend Magnus},
+  title     = {The Lattice {Boltzmann} Method: Principles and Practice},
+  publisher = {Springer},
+  year      = {2017},
+  doi       = {10.1007/978-3-319-44649-3},
+  note      = {LBM教科書}
+}
+
+@article{HosseiniSafarietal2024,
+  author    = {Hosseini, Seyed Ali and Boivin, Pierre and Sagaut, Pierre and others},
+  title     = {Lattice {Boltzmann} methods for combustion applications},
+  journal   = {Progress in Energy and Combustion Science},
+  volume    = {102},
+  pages     = {101140},
+  year      = {2024},
+  doi       = {10.1016/j.pecs.2023.101140},
+  note      = {LBMの燃焼応用に関する最新レビュー}
+}
+
+@article{HosseiniCoreixasetal2023,
+  author    = {Hosseini, Seyed Ali and Coreixas, Christophe and Darabiha, Nasser and Th{\'e}venin, Dominique},
+  title     = {Lattice {Boltzmann} for non-ideal fluids: Fundamentals and practice},
+  journal   = {Physics Reports},
+  volume    = {1030},
+  pages     = {1--137},
+  year      = {2023},
+  doi       = {10.1016/j.physrep.2023.07.003},
+  note      = {非理想流体のLBM}
+}
+
+@article{Wang2021SHSLBM,
+  author    = {Wang, Yong and Zhong, Chengwen and Cao, Jun and others},
+  title     = {Improved simplified and highly stable lattice {Boltzmann} methods for incompressible flows},
+  journal   = {International Journal of Modern Physics C},
+  volume    = {32},
+  number    = {6},
+  pages     = {2150077},
+  year      = {2021},
+  doi       = {10.1142/S0129183121500777},
+  note      = {簡略化高安定LBM}
+}
+
+% ==============================================================================
+% 人工圧縮性法・その他の手法 (2020s)
+% ==============================================================================
+
+@article{TsegaEdejaetal2024,
+  author    = {Tsega, Eshetu Hailu and Edeja, Wubshet Ibrahim and Reddy, M. Kiran},
+  title     = {Advancing Finite Difference Solutions for Two-Dimensional Incompressible {Navier-Stokes} Equations Using Artificial Compressibility Method and Sparse Matrix Computation},
+  journal   = {Journal of Applied Mathematics},
+  volume    = {2024},
+  pages     = {5506715},
+  year      = {2024},
+  doi       = {10.1155/2024/5506715},
+  note      = {人工圧縮性法と疎行列計算}
+}
+
+@article{CappaneraGuerrondMironescu2025,
+  author    = {Cappanera, Lo{\"i}c and Guermond, Jean-Luc and Mironescu, Petru},
+  title     = {Artificial Compressibility Method for the Incompressible {Navier-Stokes} Equations With Variable Density},
+  journal   = {Numerical Methods for Partial Differential Equations},
+  volume    = {41},
+  pages     = {e70033},
+  year      = {2025},
+  doi       = {10.1002/num.70033},
+  note      = {可変密度流れの人工圧縮性法}
+}
+
+@article{SemiImplicitFV2024,
+  author    = {Beccantini, A. and Balg{\'e}rias, M. and Paci, A.},
+  title     = {A Semi-implicit Finite Volume Scheme for Incompressible Two-Phase Flows},
+  journal   = {Communications on Applied Mathematics and Computation},
+  year      = {2024},
+  doi       = {10.1007/s42967-024-00367-0},
+  note      = {半陰解法有限体積スキーム、二相流}
+}
+
+% ==============================================================================
+% OpenFOAMとPIMPLE法
+% ==============================================================================
+
+@misc{OpenFOAM,
+  author    = {{OpenCFD Ltd}},
+  title     = {{OpenFOAM}: The Open Source {CFD} Toolbox},
+  year      = {2024},
+  url       = {https://www.openfoam.com/},
+  note      = {PIMPLE法（PISO+SIMPLE）を実装したオープンソースCFDソフトウェア}
+}
+
+@phdthesis{JaspersenPIMPLE,
+  author    = {Jaspersen, H.},
+  title     = {The {PIMPLE} algorithm in {OpenFOAM}},
+  school    = {Chalmers University of Technology},
+  year      = {2022},
+  url       = {https://www.tfd.chalmers.se/~hani/kurser/OS_CFD_2022/lectureNotes/PIMPLE.pdf},
+  note      = {PIMPLE法の解説講義資料}
+}
+
+% ==============================================================================
+% 教科書・参考書
+% ==============================================================================
+
+@book{FerzigerPeric2002,
+  author    = {Ferziger, Joel H. and Peri{\'c}, Milovan},
+  title     = {Computational Methods for Fluid Dynamics},
+  edition   = {3rd},
+  publisher = {Springer},
+  year      = {2002},
+  doi       = {10.1007/978-3-642-56026-2},
+  note      = {CFD標準教科書、SIMPLE/PISO詳細解説}
+}
+
+@book{VersteegMalalasekera2007,
+  author    = {Versteeg, Henk Kaarle and Malalasekera, Weeratunge},
+  title     = {An Introduction to Computational Fluid Dynamics: The Finite Volume Method},
+  edition   = {2nd},
+  publisher = {Pearson Education Limited},
+  year      = {2007},
+  isbn      = {978-0131274983},
+  note      = {有限体積法入門教科書}
+}
+
+@book{Wesseling2001,
+  author    = {Wesseling, Pieter},
+  title     = {Principles of Computational Fluid Dynamics},
+  publisher = {Springer},
+  year      = {2001},
+  doi       = {10.1007/978-3-642-05146-3},
+  note      = {CFD原理の教科書}
+}
+
+% ==============================================================================
+% 高精度・高次スキーム
+% ==============================================================================
+
+@article{KarnieladisIsraeli1991,
+  author    = {Karniadakis, George Em and Israeli, Moshe and Orszag, Steven A.},
+  title     = {High-order splitting methods for the incompressible {Navier-Stokes} equations},
+  journal   = {Journal of Computational Physics},
+  volume    = {97},
+  number    = {2},
+  pages     = {414--443},
+  year      = {1991},
+  doi       = {10.1016/0021-9991(91)90007-8},
+  note      = {高次時間積分のProjection法}
+}
+
+@article{MaydayPateraRonquist1990,
+  author    = {Maday, Yvon and Patera, Anthony T. and R{\o}nquist, Einar M.},
+  title     = {An operator-integration-factor splitting method for time-dependent problems: application to incompressible fluid flow},
+  journal   = {Journal of Scientific Computing},
+  volume    = {5},
+  number    = {4},
+  pages     = {263--292},
+  year      = {1990},
+  doi       = {10.1007/BF01063118},
+  note      = {演算子分離法}
+}
+
+% ==============================================================================
+% 近年の最新手法 (2022-2024)
+% ==============================================================================
+
+@article{ESIMPLE2021,
+  author    = {Xue, Gaoyuan and Zhao, Penghui and Liu, Jiying and Cao, Lu},
+  title     = {{ESIMPLE}, a new pressure--velocity coupling algorithm for built-environment {CFD} simulations},
+  journal   = {Building and Environment},
+  volume    = {203},
+  pages     = {108073},
+  year      = {2021},
+  doi       = {10.1016/j.buildenv.2021.108073},
+  note      = {建築環境CFD向けの改良SIMPLE法}
+}
+
+@article{COMPLEX2020,
+  author    = {Aguerre, Horacio J. and Pairetti, César I. and Venier, César M. and Damián, Santiago Márquez and Nigro, Norberto M.},
+  title     = {A {SIMPLE}-based algorithm with enhanced velocity corrections: The {COMPLEX} method},
+  journal   = {Computers \& Fluids},
+  volume    = {198},
+  pages     = {104396},
+  year      = {2020},
+  doi       = {10.1016/j.compfluid.2019.104396},
+  note      = {速度補正強化SIMPLE法}
+}
+
+@article{LocalPressureCorrection2021,
+  author    = {Kaya, Songül and Rivière, Béatrice},
+  title     = {Local pressure-correction for the {Navier-Stokes} equations},
+  journal   = {International Journal for Numerical Methods in Fluids},
+  volume    = {93},
+  number    = {4},
+  pages     = {1191--1212},
+  year      = {2021},
+  doi       = {10.1002/fld.4925},
+  note      = {局所圧力補正法}
+}
+
+@article{CahnHilliardNS2022,
+  author    = {Fernando, Makrand A. and Iaccarino, Gianluca and others},
+  title     = {A fully-coupled framework for solving {Cahn-Hilliard Navier-Stokes} equations: Second-order, energy-stable numerical methods on adaptive octree based meshes},
+  journal   = {Computer Physics Communications},
+  volume    = {280},
+  pages     = {108501},
+  year      = {2022},
+  doi       = {10.1016/j.cpc.2022.108501},
+  note      = {完全結合Cahn-Hilliard Navier-Stokesソルバー}
+}

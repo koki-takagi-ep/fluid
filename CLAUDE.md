@@ -30,6 +30,14 @@ cd build
 # Channel flow - SIMPLE method
 ./channel_flow_simple [nx] [ny] [U_in] [end_time]
 # Example: ./channel_flow_simple 64 16 0.01 2.0
+
+# Channel flow - PISO method
+./channel_flow_piso [nx] [ny] [U_in] [end_time] [nCorrectors]
+# Example: ./channel_flow_piso 64 16 0.01 2.0 2
+
+# Cavity flow - PISO method
+./cavity_flow_piso [nx] [U_lid] [end_time] [nCorrectors]
+# Example: ./cavity_flow_piso 64 0.01 10.0 2
 ```
 
 ## Visualization (from build directory)
@@ -37,22 +45,26 @@ cd build
 ```bash
 python3 ../scripts/visualize.py output/channel_projection --plot-final   # Projection法
 python3 ../scripts/visualize.py output/channel_simple --plot-final       # SIMPLE法
+python3 ../scripts/visualize.py output/channel_piso --plot-final         # PISO法
 python3 ../scripts/visualize.py output/cavity_projection --plot-final    # Cavity flow
+python3 ../scripts/visualize.py output/cavity_piso --plot-final          # Cavity PISO
 python3 ../scripts/validation.py output/cavity_projection --Re 100       # Ghia benchmark
 ```
 
 ## Architecture
 
-2D incompressible Navier-Stokes solver using **MAC method** (staggered grid) with two time integration schemes:
+2D incompressible Navier-Stokes solver using **MAC method** (staggered grid) with three time integration schemes:
 - **Projection method** (Chorin, 1968) - `Solver` class
 - **SIMPLE method** (Patankar & Spalding, 1972) - `SimpleSolver` class
+- **PISO method** (Issa, 1986) - `PisoSolver` class
 
 ### Class Hierarchy
 
 ```
 SolverBase (abstract)
 ├── Solver        (Projection method)
-└── SimpleSolver  (SIMPLE method)
+├── SimpleSolver  (SIMPLE method)
+└── PisoSolver    (PISO method)
 ```
 
 ### Core Classes (in `fluid` namespace)
@@ -63,6 +75,7 @@ SolverBase (abstract)
 | `SolverBase` | SolverBase.hpp/cpp | Abstract base: time step, convection/diffusion, velocity correction |
 | `Solver` | Solver.hpp/cpp | Projection method (inherits SolverBase) |
 | `SimpleSolver` | SimpleSolver.hpp/cpp | SIMPLE method (inherits SolverBase) |
+| `PisoSolver` | PisoSolver.hpp/cpp | PISO method (inherits SolverBase) |
 | `PressureSolver` | PressureSolver.hpp/cpp | SOR solver for pressure Poisson equation |
 | `BoundaryCondition` | BoundaryCondition.hpp/cpp | NoSlip, Inflow, Outflow. Factory: `cavityFlow()`, `channelFlow()` |
 | `CSVWriter` | CSVWriter.hpp/cpp | CSV output to `output_*/data/` |
@@ -83,6 +96,14 @@ Numerical constants are defined in `include/Constants.hpp` to avoid magic number
 
 **SIMPLE Method:**
 Same structure but with under-relaxation for pressure (α_p ≈ 0.3) and velocity (α_u ≈ 0.7).
+
+**PISO Method:**
+Non-iterative predictor-corrector scheme with multiple correction steps:
+1. Predictor: Compute u* (same as projection)
+2. First Corrector: Solve ∇²p' = (ρ/Δt)∇·u*, correct u** = u* - (Δt/ρ)∇p'
+3. Second Corrector: Solve ∇²p'' = (ρ/Δt)∇·u**, correct u^{n+1} = u** - (Δt/ρ)∇p''
+
+PISO is particularly suited for transient flows (no outer iteration required).
 
 ### Grid Indexing
 
@@ -107,8 +128,10 @@ All quantities in SI units: meters, seconds, kg/m³, Pa.
 ```
 output/
 ├── cavity_projection/      # Cavity flow (Projection method)
+├── cavity_piso/            # Cavity flow (PISO method)
 ├── channel_projection/     # Channel flow (Projection method)
-└── channel_simple/         # Channel flow (SIMPLE method)
+├── channel_simple/         # Channel flow (SIMPLE method)
+└── channel_piso/           # Channel flow (PISO method)
     ├── data/
     │   ├── field_000000.csv    # x, y, u, v, p, magnitude
     │   ├── field_000001.csv
