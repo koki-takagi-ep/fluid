@@ -51,12 +51,9 @@ int SimpleSolver::solvePressureCorrection(Grid& grid, const BoundaryCondition& b
         }
     }
 
-    // 初期値として現在の圧力場をコピー
-    for (int i = 0; i < nx + 2; ++i) {
-        for (int j = 0; j < ny + 2; ++j) {
-            p_prime_[i][j] = grid.p[i][j];
-        }
-    }
+    // 初期値として前回の圧力補正場を使用（収束を早める）
+    // 最初の呼び出し時は0で初期化されている
+    // p_prime_は前回の解を保持しているのでリセットしない
 
     // SOR反復で圧力Poisson方程式を解く
     for (int iter = 0; iter < maxPressureIter; ++iter) {

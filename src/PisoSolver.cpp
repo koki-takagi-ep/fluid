@@ -55,12 +55,10 @@ int PisoSolver::solvePressureCorrection(Grid& grid, const BoundaryCondition& bc,
         }
     }
 
-    // 圧力補正p'の初期値は0（PISO法の正しい初期化）
-    for (int i = 0; i < nx + 2; ++i) {
-        for (int j = 0; j < ny + 2; ++j) {
-            p_prime_[i][j] = 0.0;
-        }
-    }
+    // 圧力補正p'の初期値として前回の解を使用（収束を早める）
+    // 最初の呼び出し時はensureArraySizeで0初期化される
+    // 連続する時間ステップでは圧力補正場は似た形状になるため、
+    // 前回の解を初期推定値として使用することで収束が改善する
 
     // SOR反復で圧力Poisson方程式を解く
     for (int iter = 0; iter < maxPressureIter; ++iter) {
