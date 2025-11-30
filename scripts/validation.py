@@ -257,8 +257,8 @@ def plot_multi_case_validation(output_dirs: list, labels: list, Re: int, U_lid: 
     ghia_u = GHIA_DATA_U[Re]
     ghia_v = GHIA_DATA_V[Re]
 
-    # カラーパレット
-    colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd']
+    # Wong's colorblind-friendly palette
+    colors = ['#0072B2', '#E69F00', '#009E73', '#D55E00', '#CC79A7', '#56B4E9', '#F0E442']
     linestyles = ['-', '--', '-.', ':']
 
     # プロット作成（正方形の2パネル）

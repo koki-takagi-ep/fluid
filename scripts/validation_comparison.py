@@ -90,7 +90,8 @@ def main():
         'PISO': os.path.join(build_dir, 'output/cavity_piso')
     }
 
-    colors = {'Projection': 'C0', 'SIMPLE': 'C1', 'PISO': 'C2'}
+    # Wong's colorblind-friendly palette
+    colors = {'Projection': '#0072B2', 'SIMPLE': '#D55E00', 'PISO': '#009E73'}
     linestyles = {'Projection': '-', 'SIMPLE': '--', 'PISO': '-.'}
 
     U_lid = 0.01  # m/s
