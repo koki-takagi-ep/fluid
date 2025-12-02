@@ -16,6 +16,24 @@ import subprocess
 import sys
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+# Import colorblind-friendly colors
+try:
+    from colors import SOLVER_COLORS, LIMITER_MARKERS, LIMITER_STYLES, WONG_COLORS
+except ImportError:
+    # Fallback: Wong's colorblind-friendly palette
+    SOLVER_COLORS = {
+        'projection': '#0072B2',  # blue
+        'simple': '#D55E00',      # vermilion
+        'piso': '#009E73',        # bluish green
+    }
+    LIMITER_MARKERS = {
+        'none': 'o', 'minmod': 's', 'superbee': '^', 'vanleer': 'D', 'mc': 'v'
+    }
+    LIMITER_STYLES = {
+        'none': '-', 'minmod': '--', 'superbee': '-.', 'vanleer': ':', 'mc': (0, (5, 1))
+    }
+    WONG_COLORS = ['#0072B2', '#E69F00', '#009E73', '#D55E00', '#CC79A7', '#56B4E9', '#F0E442']
+
 
 def poiseuille_velocity(y: np.ndarray, H: float, U_max: float) -> np.ndarray:
     """Analytical Hagen-Poiseuille velocity profile"""
@@ -175,34 +193,17 @@ def setup_axis_style(ax):
 
 
 def plot_all_schemes(df: pd.DataFrame, save_file: str = None):
-    """Plot grid convergence for all schemes with distinct line styles"""
+    """Plot grid convergence for all schemes with distinct line styles
 
-    fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+    Uses Wong's colorblind-friendly palette for accessibility.
+    """
 
-    # Define styles for each scheme
-    # Colors: projection=blue, simple=red, piso=green
-    # Line styles: none=solid, minmod=dashed, superbee=dashdot, vanleer=dotted, mc=loosely dashed
-    solver_colors = {
-        'projection': '#1f77b4',  # blue
-        'simple': '#d62728',       # red
-        'piso': '#2ca02c'          # green
-    }
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
 
-    limiter_styles = {
-        'none': '-',
-        'minmod': '--',
-        'superbee': '-.',
-        'vanleer': ':',
-        'mc': (0, (5, 1))  # loosely dashed
-    }
-
-    limiter_markers = {
-        'none': 'o',
-        'minmod': 's',
-        'superbee': '^',
-        'vanleer': 'D',
-        'mc': 'v'
-    }
+    # Use imported colorblind-friendly colors
+    solver_colors = SOLVER_COLORS
+    limiter_styles = LIMITER_STYLES
+    limiter_markers = LIMITER_MARKERS
 
     # Get unique schemes
     schemes = df.groupby(['solver', 'limiter']).groups.keys()
@@ -318,20 +319,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # Define schemes to test
+    # Define schemes to test - all combinations
     # Solver: projection, simple, piso
     # Limiter: none, minmod, superbee, vanleer, mc
-    schemes = [
-        ('projection', 'none'),
-        ('projection', 'minmod'),
-        ('projection', 'vanleer'),
-        ('simple', 'none'),
-        ('simple', 'minmod'),
-        ('simple', 'vanleer'),
-        ('piso', 'none'),
-        ('piso', 'minmod'),
-        ('piso', 'vanleer'),
-    ]
+    solvers = ['projection', 'simple', 'piso']
+    limiters = ['none', 'minmod', 'superbee', 'vanleer', 'mc']
+    schemes = [(s, l) for s in solvers for l in limiters]
 
     if args.load:
         df = pd.read_csv(args.load)

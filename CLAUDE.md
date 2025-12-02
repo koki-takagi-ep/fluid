@@ -117,6 +117,8 @@ Non-iterative predictor-corrector scheme with multiple correction steps:
 
 PISO is particularly suited for transient flows (no outer iteration required).
 
+**Important:** All solvers retain the previous pressure correction field (`p_prime_`) as the initial guess for SOR iteration. This enables 2nd-order grid convergence for all three methods.
+
 ### Grid Indexing
 
 - `p[i][j]`: cell center, array size (nx+2)×(ny+2)
@@ -181,8 +183,11 @@ numpy, matplotlib, pandas, scipy
 |--------|---------|
 | `visualize.py` | Plot velocity/pressure fields, streamlines (SVG/PDF/PNG output) |
 | `validation.py` | Compare with Ghia et al. (1982) benchmark data |
+| `validation_comparison.py` | Compare all 3 solvers against Ghia benchmark |
 | `convergence.py` | Analyze solver convergence history |
 | `convergence_all_schemes.py` | Grid convergence study for multiple solver/limiter combinations |
+| `tvd_validation.py` | Compare TVD limiters against Ghia benchmark |
+| `colors.py` | Wong's colorblind-friendly color palette for plots |
 
 ## Git/PR ルール
 

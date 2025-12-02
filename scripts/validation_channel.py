@@ -308,7 +308,8 @@ def plot_multi_case_validation(output_dirs: list, labels: list,
     # プロット作成（正方形パネル）
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
-    colors = ['#1f77b4', '#d62728', '#2ca02c', '#ff7f0e', '#9467bd']
+    # Wong's colorblind-friendly palette
+    colors = ['#0072B2', '#E69F00', '#009E73', '#D55E00', '#CC79A7', '#56B4E9', '#F0E442']
     linestyles = ['-', '--', '-.', ':']
 
     errors_all = {}

@@ -122,13 +122,13 @@ def main():
         'MC': 'tvd_mc'
     }
 
-    # 色: 実線は濃い色、破線は区別しやすい色
+    # Wong's colorblind-friendly palette
     colors = {
-        'Upwind (1st-order)': '#1f77b4',  # blue
-        'Minmod': '#d62728',               # red
-        'Superbee': '#2ca02c',             # green
-        'Van Leer': '#7f7f7f',             # gray (dotted)
-        'MC': '#9467bd'                    # purple
+        'Upwind (1st-order)': '#0072B2',  # blue
+        'Minmod': '#D55E00',               # vermilion
+        'Superbee': '#009E73',             # bluish green
+        'Van Leer': '#E69F00',             # orange
+        'MC': '#CC79A7'                    # reddish purple
     }
 
     linestyles = {
