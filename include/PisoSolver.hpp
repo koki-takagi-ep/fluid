@@ -130,16 +130,16 @@ private:
     void ensureArraySize(std::vector<std::vector<double>>& arr, int rows, int cols);
 
     /**
-     * @brief 圧力補正p'による速度補正（PISO法専用）
+     * @brief 圧力場pによる速度補正
      * @param grid 格子
      * @param u_field 入力速度場（補正前）
      * @param v_field 入力速度場（補正前）
      *
-     * u^{n+1} = u_field - (dt/ρ) * ∇p'
+     * u^{n+1} = u_field - (dt/ρ) * ∇p
      */
-    void correctVelocityWithPressureCorrection(Grid& grid,
-                                                const std::vector<std::vector<double>>& u_field,
-                                                const std::vector<std::vector<double>>& v_field);
+    void correctVelocityWithPressure(Grid& grid,
+                                      const std::vector<std::vector<double>>& u_field,
+                                      const std::vector<std::vector<double>>& v_field);
 };
 
 } // namespace fluid
