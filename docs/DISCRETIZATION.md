@@ -140,6 +140,76 @@ SIMPLE法（Semi-Implicit Method for Pressure-Linked Equations, Patankar & Spald
 | 収束性 | 時間ステップで制御 | 緩和係数で制御 |
 | 計算コスト | 各ステップ軽い | 反復が必要 |
 
+### 3.5 圧力補正式の導出と緩和の役割
+
+SIMPLE法では、離散化した運動量方程式を
+
+$$
+a_P u_P = \sum_{N} a_N u_N + b_P - A_P (p_P - p_N)
+$$
+
+と表し、仮圧力 $p^*$ に対する予測速度 $u^*$ から、補正速度
+
+$$
+u'_P = d_P (p'_P - p'_N), \quad d_P = \frac{A_P}{a_P}
+$$
+
+を導入する。連続の式に $u^{(k+1)} = u^* + u'$ を代入することで、圧力補正式（圧力補正ポアソン方程式）
+
+$$
+\nabla \cdot (d \nabla p') = \nabla \cdot u^*
+$$
+
+が得られる（Patankar, 1980）。得られた $p'$ は緩和付き更新
+
+$$
+p^{(k+1)} = p^{(k)} + \alpha_p p', \quad 0 < \alpha_p \le 1
+$$
+
+で適用され、速度も同じ補正量 $u'$ で更新する。$\alpha_p$ を 1 未満に設定することで、連続の式を満たす方向の更新量を抑制し、係数行列の対角優位性を高めて収束を安定化させる。一般に $\alpha_p$ を小さくすると 1 ステップあたりの進みは遅くなるが、振動を抑え全体として滑らかに収束する（Patankar, 1980）。
+
+### 3.6 PISO法の補正ステップ
+
+PISO（Pressure-Implicit with Splitting of Operators）では、予測速度 $u^*$ を得た後、複数回の圧力補正を行う：
+
+1. **第1補正**: SIMPLE と同様に圧力補正式を解き、$p^{(1)}$, $u^{(1)}$ を得る。
+2. **第2補正以降**: 更新後の速度場を再度連続の式に代入し、$\nabla \cdot u^{(m)} \neq 0$ となる残差に対して追加の圧力補正式を解く。
+
+各補正で
+
+$$
+u^{(m+1)} = u^{(m)} - d \nabla p'^{(m)}, \quad p^{(m+1)} = p^{(m)} + p'^{(m)}
+$$
+
+と逐次更新することで、1タイムステップ中に質量保存をより正確に満たす。緩和は通常 $\alpha_p = 1$ とし、補正回数（2〜3回）が安定性のパラメータとなる。
+
+### 3.7 Rhie–Chow補間による面速度
+
+圧力–速度連成をコロケーション格子で扱う場合、圧力がジグザグ状に振動するチェックボード解が生じることがある。Rhie & Chow (1983) は、面速度に運動量方程式を用いた補間を導入することでこの振動を抑制した。セル面 $f$ の質量流束（例: $u$-面）を
+
+$$
+u_f = u_f^* - d_f (p_N - p_P) + \sum_{N} w_{f,N} (u_N - u_P)
+$$
+
+とし、ここで $d_f = A_f / a_{P,f}$ は運動量方程式から得る係数、$p_P, p_N$ は面両側の圧力、$w_{f,N}$ は周辺セルからの補間係数である。連続の式に現れる質量流束をこの $u_f$ で評価すると、圧力補正と速度補正が整合するため、$\nabla^2 p$ 型のチェックボーディングが抑制される。
+
+### 3.8 収束判定と期待値
+
+SIMPLE/PISO 反復の収束は、連続の式と運動量式の残差
+
+$$
+R_{\phi} = \frac{\sum_{cells} |\text{LHS}_{\phi} - \text{RHS}_{\phi}|}{\sum_{cells} |\text{RHS}_{\phi}|}
+$$
+
+で評価する。実装では L1 規範の相対残差を用い、$R_{u}, R_{v}, R_{p}$ を $10^{-5}$〜$10^{-6}$ 以下にすることを目標にする。単純な 2D 定常問題（Re=100 のリッド駆動キャビティなど）では、適切な緩和係数を用いると SIMPLE で 100〜300 反復、PISO で 30〜80 反復が典型である。
+
+### 3.9 検証ベンチマーク
+
+- **リッド駆動キャビティ流**（Ghia et al., 1982）: 速度プロファイルの参照解が広く報告されており、SIMPLE/PISO 実装の収束速度と残差低下を確認するベンチマークとして有用。
+- **パイプ層流**: 圧力降下と解析解の比較により、圧力補正の安定性を検証できる。
+
+これらのベンチマークにおいて、Rhie–Chow 補間を有効にすると圧力のチェックボーディングが消失し、残差が単調に減少することを確認できる。
+
 ---
 
 ## 4. 移流項の離散化
@@ -292,6 +362,9 @@ $$
 - Harlow, F. H., & Welch, J. E. (1965). Numerical calculation of time-dependent viscous incompressible flow of fluid with free surface. *Physics of Fluids*, 8(12), 2182-2189.
 - Chorin, A. J. (1968). Numerical solution of the Navier-Stokes equations. *Mathematics of Computation*, 22(104), 745-762.
 - Patankar, S. V., & Spalding, D. B. (1972). A calculation procedure for heat, mass and momentum transfer in three-dimensional parabolic flows. *International Journal of Heat and Mass Transfer*, 15(10), 1787-1806.
+- Patankar, S. V. (1980). *Numerical Heat Transfer and Fluid Flow*. Hemisphere.
+- Rhie, C. M., & Chow, W. L. (1983). Numerical study of the turbulent flow past an airfoil with trailing edge separation. *AIAA Journal*, 21(11), 1525-1532.
+- Ghia, U., Ghia, K. N., & Shin, C. T. (1982). High-Re solutions for incompressible flow using the Navier-Stokes equations and a multigrid method. *Journal of Computational Physics*, 48(3), 387-411.
 - Ferziger, J. H., & Peric, M. (2002). *Computational Methods for Fluid Dynamics* (3rd ed.). Springer.
 - LeVeque, R. J. (2007). *Finite Difference Methods for Ordinary and Partial Differential Equations*. SIAM.
 
