@@ -104,88 +104,90 @@ $$
 
 ### Projection法（時間積分）
 
-Projection法（Chorin, 1968）は、非圧縮性Navier-Stokes方程式の時間積分において最も広く使われる手法の一つである。この手法の核心は、**速度場と圧力場を分離して解く**ことで、計算効率を大幅に向上させる点にある。
+Projection法（Chorin, 1968; Temam, 1969）は、非圧縮性Navier-Stokes方程式の時間積分において最も広く使われる手法の一つである。この手法の核心は、**速度場と圧力場を分離して解く**ことで計算効率を高める点にある。詳しい書誌情報は [docs/REFERENCES.md](docs/REFERENCES.md) を参照。
 
 #### なぜProjection法を使うのか？
 
-非圧縮性流れでは、速度と圧力が連続の式 $\nabla \cdot \mathbf{u} = 0$ を通じて強く結合している。これを直接解くことは計算コストが高い。Projection法は**Helmholtz-Hodge分解**の原理に基づき、任意のベクトル場を発散なし成分と勾配成分に分解できることを利用する：
+非圧縮性流れでは、速度と圧力が連続の式 $\nabla \cdot \mathbf{u} = 0$ を通じて強く結合している。これを直接解くことは計算コストが高い。Projection法は**Helmholtz–Hodge分解**（Chorin, 1968; Temam, 1969）に基づき、任意のベクトル場を発散なし成分と勾配成分に分解する：
 
 $$
-\mathbf{w} = \mathbf{u} + \nabla \phi
+\mathbf{w} = \mathbf{u} + \nabla \phi \quad (\nabla \cdot \mathbf{u} = 0) \quad \text{(Chorin 1968; Temam 1969)}
 $$
 
-ここで $\nabla \cdot \mathbf{u} = 0$ である。この性質を使い、まず圧力を無視した「仮の速度場」を計算し、その後圧力によって連続の式を満たすように補正する。
+まず圧力を無視した「仮の速度場」を計算し、その後圧力によって連続の式を満たすよう補正する。
 
 #### アルゴリズム
 
 **Step 1. 予測ステップ（Predictor）**
 
-圧力項を除いた運動量方程式を解き、中間速度場 $\mathbf{u}^*$ を求める：
+圧力項を除いた運動量方程式を解き、中間速度場 $\mathbf{u}^*$ を求める（半離散化後のHelmholtz–Hodge分解の第一段階）：
 
 $$
-\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n
+\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n \quad \text{(Chorin 1968)}
 $$
 
 この段階では連続の式 $\nabla \cdot \mathbf{u}^* = 0$ は一般に満たされない。
 
 **Step 2. 圧力Poisson方程式**
 
-次の時刻で連続の式を満たす圧力場を求める。修正ステップの式の発散をとり $\nabla \cdot \mathbf{u}^{n+1} = 0$ を課すと：
+次の時刻で連続の式を満たす圧力場を求める。修正ステップの式の発散をとり $\nabla \cdot \mathbf{u}^{n+1} = 0$ を課すと、圧力Poisson方程式が得られる：
 
 $$
-\nabla^2 p^{n+1} = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^*
+\nabla^2 p^{n+1} = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^* \quad \text{(Chorin 1968; Temam 1969)}
 $$
 
-この楕円型偏微分方程式をSOR法（逐次過緩和法）で反復的に解く。
+この楕円型偏微分方程式をSOR法（逐次過緩和法）で反復的に解く。時間刻み $\Delta t$ が極端に小さい場合、右辺が丸め誤差に埋もれやすく、圧力 Poisson の収束が鈍化する点に注意する（Temam 1969）。
 
 **Step 3. 修正ステップ（Corrector）**
 
 求めた圧力勾配で中間速度場を補正し、発散なしの速度場を得る：
 
 $$
-\mathbf{u}^{n+1} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p^{n+1}
+\mathbf{u}^{n+1} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p^{n+1} \quad \text{(Chorin 1968)}
 $$
 
 ### SIMPLE法（時間積分）
 
-SIMPLE法（Semi-Implicit Method for Pressure-Linked Equations, Patankar & Spalding, 1972）は、定常・非定常流れの両方に適用できる圧力-速度連成解法である。
+SIMPLE法（Semi-Implicit Method for Pressure-Linked Equations, Patankar & Spalding, 1972）は、定常・非定常流れの両方に適用できる圧力-速度連成解法である。圧力補正と緩和の考え方は後続のPISO法の基礎にもなっている。参考文献の詳細は [docs/REFERENCES.md](docs/REFERENCES.md) を参照。
 
 #### アルゴリズム
 
-SIMPLE法はProjection法と類似した構造を持つが、緩和係数を用いた反復により安定性を高めている：
+SIMPLE法はProjection法と類似した構造を持つが、緩和係数を用いた反復により安定性を高めている（Patankar & Spalding, 1972）：
 
 **Step 1. 推定速度場の計算**
 
 圧力場 $p^*$ を用いて運動量方程式を離散化し、中間速度 $\mathbf{u}^*$ を計算：
 
 $$
-\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n - \frac{1}{\rho}\nabla p^*
+\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n - \frac{1}{\rho}\nabla p^* \quad \text{(Patankar & Spalding 1972)}
 $$
 
-**Step 2. 圧力補正方程式**
+**Step 2. 圧力補正方程式（Pressure-correction）**
 
 連続の式を満たすための圧力補正 $p'$ を求める：
 
 $$
-\nabla^2 p' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^*
+\nabla^2 p' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^* \quad \text{(Patankar & Spalding 1972)}
 $$
 
-**Step 3. 圧力と速度の緩和補正**
+**Step 3. 圧力と速度の緩和補正（Under-relaxation）**
 
-緩和係数を用いて圧力と速度を更新：
+緩和係数を用いて圧力と速度を更新し、反復の安定性を高める：
 
 $$
-p^{n+1} = p^* + \alpha_p p', \quad \mathbf{u}^{n+1} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p'
+p^{n+1} = p^* + \alpha_p p', \quad \mathbf{u}^{n+1} = \mathbf{u}^* - \alpha_u \frac{\Delta t}{\rho} \nabla p' \quad \text{(Patankar & Spalding 1972)}
 $$
 
-- $\alpha_p$: 圧力緩和係数（典型値: 0.3）
-- $\alpha_u$: 速度緩和係数（典型値: 0.7）
+- $\alpha_p$: 圧力緩和係数（典型値: 0.2–0.5、Patankar & Spalding 1972; Ferziger & Perić 2002）
+- $\alpha_u$: 速度緩和係数（典型値: 0.5–0.9、Ferziger & Perić 2002）
 
-**Step 4.** 収束するまでStep 1-3を繰り返す。
+緩和係数を過大にすると高周波振動が生じやすく、過小にすると収束が遅くなる。標準的なSIMPLE実装では $\alpha_p \approx 0.3$, $\alpha_u \approx 0.7$ が経験的に選ばれる（Patankar & Spalding 1972）。
+
+**Step 4.** 収束するまでStep 1-3を繰り返す。圧力補正の連続性残差 $\|\nabla \cdot \mathbf{u}\|_\infty$ が十分小さくなるまで反復するのが実務的。
 
 ### PISO法（時間積分）
 
-PISO法（Pressure-Implicit with Splitting of Operators, Issa, 1986）は、SIMPLE法を改良した非反復式の予測-補正スキームである。特に**非定常流れの計算**に適しており、外部反復（outer iteration）を必要としない点が大きな特徴である。
+PISO法（Pressure-Implicit with Splitting of Operators, Issa, 1986）は、SIMPLE法を改良した非反復式の予測-補正スキームである。特に**非定常流れの計算**に適しており、外部反復（outer iteration）を必要としない点が大きな特徴である。詳しい書誌情報は [docs/REFERENCES.md](docs/REFERENCES.md) を参照。
 
 #### なぜPISO法を使うのか？
 
@@ -197,14 +199,14 @@ SIMPLE法では各タイムステップで複数回の外部反復が必要と�
 
 #### アルゴリズム
 
-PISO法は1回の**予測ステップ（Predictor）** と複数回の**補正ステップ（Corrector）** から構成される。標準的には2回の補正ステップ（PISO-2）が使用される。
+PISO法は1回の**予測ステップ（Predictor）** と複数回の**補正ステップ（Corrector）** から構成される。標準的には2回の補正ステップ（PISO-2）が使用される（Issa, 1986）。
 
 **Step 1. 予測ステップ（Predictor）**
 
 Projection法と同様に、圧力項を除いた運動量方程式を解き、中間速度場 $\mathbf{u}^*$ を求める：
 
 $$
-\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n
+\frac{\mathbf{u}^* - \mathbf{u}^n}{\Delta t} = -(\mathbf{u}^n \cdot \nabla)\mathbf{u}^n + \nu \nabla^2 \mathbf{u}^n \quad \text{(Issa 1986)}
 $$
 
 **Step 2. 第1補正ステップ（First Corrector）**
@@ -212,13 +214,13 @@ $$
 第1圧力補正 $p'$ を求めるPoisson方程式を解く：
 
 $$
-\nabla^2 p' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^*
+\nabla^2 p' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^* \quad \text{(Issa 1986)}
 $$
 
 速度と圧力を補正：
 
 $$
-\mathbf{u}^{**} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p', \quad p^* = p^n + p'
+\mathbf{u}^{**} = \mathbf{u}^* - \frac{\Delta t}{\rho} \nabla p', \quad p^* = p^n + p' \quad \text{(Issa 1986)}
 $$
 
 **Step 3. 第2補正ステップ（Second Corrector）**
@@ -226,18 +228,18 @@ $$
 第1補正後の速度場 $\mathbf{u}^{**}$ の発散を除去するため、第2圧力補正 $p''$ を求める：
 
 $$
-\nabla^2 p'' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^{**}
+\nabla^2 p'' = \frac{\rho}{\Delta t} \nabla \cdot \mathbf{u}^{**} \quad \text{(Issa 1986)}
 $$
 
 最終的な速度と圧力を得る：
 
 $$
-\mathbf{u}^{n+1} = \mathbf{u}^{**} - \frac{\Delta t}{\rho} \nabla p'', \quad p^{n+1} = p^* + p''
+\mathbf{u}^{n+1} = \mathbf{u}^{**} - \frac{\Delta t}{\rho} \nabla p'', \quad p^{n+1} = p^* + p'' \quad \text{(Issa 1986)}
 $$
 
 #### 追加の補正ステップ
 
-必要に応じて3回目以降の補正ステップを追加できる（PISO-3, PISO-4など）。補正回数を増やすことで精度は向上するが、計算コストも増加する。本実装では `nCorrectors` パラメータで補正回数を指定可能。
+必要に応じて3回目以降の補正ステップを追加できる（PISO-3, PISO-4など）。補正回数を増やすことで精度は向上するが、計算コストも増加する。本実装では `nCorrectors` パラメータで補正回数を指定可能。Issa (1986) では2段補正で時間2次精度を報告しており、外部反復なしで非定常計算を安定に進められることが示されている。
 
 #### 参考文献
 
@@ -329,10 +331,17 @@ $$
 CFLおよび粘性条件による適応的時間刻み：
 
 $$
-\Delta t \leq \min\left( \frac{\Delta x}{|u|_{\max}}, \frac{\Delta y}{|v|_{\max}}, \frac{\Delta x^2}{4\nu}, \frac{\Delta y^2}{4\nu} \right)
+\Delta t \leq \min\left( \frac{\Delta x}{|u|_{\max}}, \frac{\Delta y}{|v|_{\max}}, \frac{\Delta x^2}{4\nu}, \frac{\Delta y^2}{4\nu} \right) \quad \text{(Ferziger & Perić 2002)}
 $$
 
-詳細は [離散化スキーム](docs/DISCRETIZATION.md) を参照。
+追加の実務的な目安（Ferziger & Perić 2002; Versteeg & Malalasekera 2007）：
+
+- **Courant数**: $\max(|u|\Delta t/\Delta x, |v|\Delta t/\Delta y) \lesssim 1$ で数値安定性を確保。
+- **粘性条件**: $\nu \Delta t / \Delta x^2, \nu \Delta t / \Delta y^2 \lesssim 0.25$ を目安に一貫性を保つ。
+- **Reynolds数による時間刻み**: 乱流遷移を避ける目的で $Re_{\Delta t} = U_{\max} \Delta x / \nu \lesssim \mathcal{O}(10^2)$ を推奨。
+- **緩和係数の指針（SIMPLE）**: 圧力緩和 $\alpha_p \approx 0.2$–0.5、速度緩和 $\alpha_u \approx 0.5$–0.9（Patankar & Spalding 1972; Ferziger & Perić 2002）。
+
+詳細は [離散化スキーム](docs/DISCRETIZATION.md) および [参考文献](docs/REFERENCES.md) を参照。
 
 ## 計算結果
 
